@@ -1,0 +1,8 @@
+[RB Plugin]
+Loader=python
+Module=pandora
+IAge=1
+Name=Pandora
+Description=Plays Pandora Stream
+Authors=Meng Jun Zheng (mzheng@andrew.cmu.edu)
+Copyright=Copyright © Meng Jun Zheng
