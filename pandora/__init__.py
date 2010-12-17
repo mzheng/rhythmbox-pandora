@@ -38,6 +38,7 @@ class PandoraPlugin(rb.Plugin):
     def deactivate(self, shell):
         #TODO: CLEANUP
         print "deactivating sample python plugin"
+        shell.get_player().disconnect (self.pec_id)
         self.source.delete_thyself()
         self.source = None
         

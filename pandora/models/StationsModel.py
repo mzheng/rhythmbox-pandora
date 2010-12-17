@@ -18,3 +18,10 @@ class StationsModel(rhythmdb.QueryModel):
     
     def get_station(self, url):
         return self.__stations_dict[url] 
+    
+    def clear(self):
+        for url in self.__stations_dict.keys():
+            entry = self.__db.entry_lookup_by_location(url)
+            self.__db.entry_delete(entry)
+            self.remove_entry(entry)
+        self.__stations_dict.clear()

@@ -2,6 +2,7 @@ import rhythmdb, rb
 import gobject, gtk
 import gst
 import gnomekeyring as keyring
+from time import time
 
 from pithos.pandora import *;
 from pithos.gobject_worker import GObjectWorker
@@ -132,6 +133,7 @@ class PandoraSource(rb.StreamingSource):
                 
         def pandora_ready(*ignore):
             #TODO: Selected station
+            self.stations_model.clear()
             self.stations_model = models.StationsModel(self.__db, self.__entry_type)
             print "Pandora connected"
             #TODO: Station already exists
@@ -154,6 +156,10 @@ class PandoraSource(rb.StreamingSource):
         
         self.get_playlist(start = True)
         print "Station activated %s" %(url)
+
+        now = int(time.time())
+        self.__db.set(station_entry, rhythmdb.PROP_LAST_PLAYED, now)
+        
         
     def station_selected_cb(self, entry_view):
         print "Station selected"
