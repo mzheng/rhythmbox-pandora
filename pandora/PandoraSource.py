@@ -10,6 +10,13 @@ from pithos.gobject_worker import GObjectWorker
 import widgets
 import models
 
+popup_ui = """
+<ui>
+    <popup name="PandoraSongViewPopup">
+        <menuitem name="LoveSong" action="LoveSong"/>
+    </popup>
+</ui>
+"""
 class PandoraSource(rb.StreamingSource):
     __gproperties__ = {
             'plugin': (rb.Plugin,
@@ -72,6 +79,33 @@ class PandoraSource(rb.StreamingSource):
         self.stations_list.connect('entry-activated', self.station_activated_cb)
         self.stations_list.connect('selection-changed', self.station_selected_cb)
         self.songs_list.connect('star', self.do_star_clicked)
+        self.songs_list.connect('show_popup', self.do_songs_show_popup)
+        
+        #FIXME: Change to appropriate action
+        action = self.action_group.get_action('LoveSong')
+        action.connect('activate', self.do_love_song)
+    
+    def do_love_song(self, *args):
+        selected = self.songs_list.get_selected_entries()
+        for entry in selected:
+            if not self.songs_list.has_star(entry):
+                self.songs_list.add_star(entry)
+                self.love_song(entry)
+        
+        
+    def do_songs_show_popup(self, view, over_entry):
+        if (over_entry):
+            self.show_source_popup("/PandoraSongViewPopup")
+            
+    def create_popups(self):
+        manager = self.__player.get_property('ui-manager')
+        self.action_group = gtk.ActionGroup('PandoraPluginActions')
+        action = gtk.Action('LoveSong', _('Love Song'), _('I love this song'), 'gtk-about')
+        self.action_group.add_action(action)
+        manager.insert_action_group(self.action_group, 0)
+        self.ui_id = manager.add_ui_from_string(popup_ui)
+        manager.ensure_update()
+        
         
     def do_impl_get_entry_view(self):
         return self.songs_list
@@ -84,8 +118,10 @@ class PandoraSource(rb.StreamingSource):
             self.__entry_type = self.get_property('entry-type')
             
             self.create_window()
+            self.create_popups()
             
             self.connect_all()
+            
             
             self.username, self.password = self.get_pandora_account_info()
             #Pandora
@@ -236,11 +272,11 @@ class PandoraSource(rb.StreamingSource):
             
     def do_star_clicked(self, entryview, model, iter):
         entry = model.iter_to_entry(iter)
-        url = entry.get_playback_uri()
-        song = model.get_song(url)
-        self.love_song(song) 
+        self.love_song(entry) 
         
-    def love_song(self, song):
+    def love_song(self, entry):
+        url = entry.get_playback_uri()
+        song = self.songs_model.get_song(url) 
         def callback(l):
             print "Loved song: %s " %(song.title)
             #TODO: Add feedback

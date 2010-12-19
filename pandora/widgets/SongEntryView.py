@@ -43,7 +43,7 @@ class SongEntryView(rb.EntryView):
     
     def star_func(self, column, cell, model, iter):
         entry = model.iter_to_entry(iter)
-        star = self.db.entry_keyword_has(entry, 'star')
+        star = self.has_star(entry)
 
         if star:
             pixbuf = self.pixs[1]
@@ -55,17 +55,22 @@ class SongEntryView(rb.EntryView):
         
     def star_click(self, cell, model, path, iter):
         entry = model.iter_to_entry(iter)
-        star = self.db.entry_keyword_has(entry, 'star')
+        star = self.has_star(entry)
         if star:
             # user cannot undo "Like Song"
             return
         else:
-            self.db.entry_keyword_add(entry, 'star')
+            self.add_star(entry)
         
-    
         self.db.commit()
         model.row_changed(path, iter)
         print "Clicked star"
     
         self.emit('star', model, iter)
+        
+    def has_star(self, entry):
+        return self.db.entry_keyword_has(entry, 'star')
+    
+    def add_star(self, entry):
+        self.db.entry_keyword_add(entry, 'star')
         
