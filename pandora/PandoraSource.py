@@ -11,6 +11,13 @@ import widgets
 import models
 
 class PandoraSource(rb.StreamingSource):
+    __gproperties__ = {
+            'plugin': (rb.Plugin,
+            'plugin',
+            'plugin',
+            gobject.PARAM_WRITABLE | gobject.PARAM_CONSTRUCT_ONLY)
+    }
+      
     def __init__(self):
         #rb.BrowserSource.__init__(self)
         rb.StreamingSource.__init__(self)
@@ -23,6 +30,12 @@ class PandoraSource(rb.StreamingSource):
         self.vbox_main = None
         
         self.worker = GObjectWorker()
+    
+    def do_set_property(self, property, value):
+        if property.name == 'plugin':
+            self.__plugin = value
+        else:
+            raise AttributeError, 'unknown property %s' % property.name
         
     def get_pandora_account_info(self):
         try:
@@ -42,7 +55,7 @@ class PandoraSource(rb.StreamingSource):
             self.vbox_main = None
 
         self.stations_list = widgets.StationEntryView(self.__db, self.__player)
-        self.songs_list = widgets.SongEntryView(self.__db, self.__player)
+        self.songs_list = widgets.SongEntryView(self.__db, self.__player, self.__plugin)
         
         self.vbox_main = gtk.VPaned()
         vbox_1 = gtk.VBox()
@@ -58,6 +71,7 @@ class PandoraSource(rb.StreamingSource):
     def connect_all(self):
         self.stations_list.connect('entry-activated', self.station_activated_cb)
         self.stations_list.connect('selection-changed', self.station_selected_cb)
+        self.songs_list.connect('star', self.do_star_clicked)
         
     def do_impl_get_entry_view(self):
         return self.songs_list
@@ -219,3 +233,16 @@ class PandoraSource(rb.StreamingSource):
         
         if self.songs_model.is_last_entry(entry):
             self.get_playlist()
+            
+    def do_star_clicked(self, entryview, model, iter):
+        entry = model.iter_to_entry(iter)
+        url = entry.get_playback_uri()
+        song = model.get_song(url)
+        self.love_song(song) 
+        
+    def love_song(self, song):
+        def callback(l):
+            print "Loved song: %s " %(song.title)
+            #TODO: Add feedback
+        self.worker_run(song.rate, (RATE_LOVE,), callback, "Loving song...")
+        

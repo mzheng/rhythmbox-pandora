@@ -24,7 +24,8 @@ class PandoraPlugin(rb.Plugin):
         width, height = gtk.icon_size_lookup(gtk.ICON_SIZE_LARGE_TOOLBAR)
         icon = gtk.gdk.pixbuf_new_from_file_at_size(self.find_file("pandora.png"), width, height)
         self.source = gobject.new (PandoraSource, 
-                                   shell=shell, 
+                                   shell=shell,
+                                   plugin=self, 
                                    name=_("Pandora"),
                                    icon=icon, 
                                    entry_type=entry_type)
