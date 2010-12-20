@@ -17,6 +17,9 @@ popup_ui = """
     <popup name="PandoraSourceMainPopup">
         <menuitem name="AddStation" action="AddStation"/>
     </popup>
+    <popup name="PandoraStationViewPopup">
+        <menuitem name="DeleteStation" action="DeleteStation"/>
+    </popup>
     <popup name="PandoraSongViewPopup">
         <menuitem name="LoveSong" action="LoveSong"/>
     </popup>
@@ -83,14 +86,19 @@ class PandoraSource(rb.StreamingSource):
     def connect_all(self):
         self.stations_list.connect('entry-activated', self.station_activated_cb)
         self.stations_list.connect('selection-changed', self.station_selected_cb)
+        self.stations_list.connect('show_popup', self.do_stations_show_popup)
         self.songs_list.connect('star', self.do_star_clicked)
         self.songs_list.connect('show_popup', self.do_songs_show_popup)
+        
         
         action = self.action_group.get_action('LoveSong')
         action.connect('activate', self.love_selected_songs)
         
         action = self.action_group.get_action('AddStation')
         action.connect('activate', self.show_search_dialog)
+        
+        action = self.action_group.get_action('DeleteStation')
+        action.connect('activate', self.show_delete_dialog)
     
     def show_search_dialog(self, *args):
         if self.searchDialog:
@@ -100,6 +108,28 @@ class PandoraSource(rb.StreamingSource):
             self.searchDialog.show_all()
             self.searchDialog.connect("response", self.add_station_cb)
     
+    def show_delete_dialog(self, *args):
+       #TODO: Add a confirmation dialog
+       # delete station, if it is currently playing, play the first station instead    
+       selected = self.stations_list.get_selected_entries()
+       station_entry = selected[0]
+       url = station_entry.get_playback_uri()
+       station = self.stations_model.get_station(url)
+       self.worker_run(station.delete, context='net', message="Deleting Station...")
+       
+       self.stations_model.delete_station(url)
+       print "Deleted station %s " %(repr(station))
+       if self.current_station == station:
+           # exclude "QuickMix"
+           if self.stations_model.get_num_entries() <= 1:
+               return
+           first_station_entry = self.stations_model.get_first_station()
+           print "Deleted current station, play first station instead"
+           self.station_activated_cb(self.stations_list, first_station_entry)
+       
+       
+       
+            
     def add_station_cb(self, dialog, response):
         print "in add_station_cb", dialog.result, response
         if response == 1:
@@ -110,10 +140,12 @@ class PandoraSource(rb.StreamingSource):
         
     def station_added(self, station):
         # Add station to list and start playing it
-        print "Added Station: %s" %(repr(station))
+        print "Added and switching to station: %s" %(repr(station))
         station_entry = self.stations_model.add_station(station, station.name, 1) # After QuickMix
         self.station_activated_cb(self.stations_list, station_entry)
         
+    
+    
     
     def love_selected_songs(self, *args):
         selected = self.songs_list.get_selected_entries()
@@ -124,8 +156,14 @@ class PandoraSource(rb.StreamingSource):
         
         
     def do_songs_show_popup(self, view, over_entry):
+        #FIXME: Only show if one entry is selected
         if (over_entry):
             self.show_source_popup("/PandoraSongViewPopup")
+            
+    def do_stations_show_popup(self, view, over_entry):
+        if (over_entry):
+            self.show_source_popup("/PandoraStationViewPopup")
+                
             
     def create_popups(self):
         manager = self.__player.get_property('ui-manager')
@@ -134,6 +172,9 @@ class PandoraSource(rb.StreamingSource):
         self.action_group.add_action(action)
         
         action = gtk.Action('AddStation', _('Create a New Station'), _('Create a new Pandora station'), 'gtk-add')
+        self.action_group.add_action(action)
+        
+        action = gtk.Action('DeleteStation', _('Delete this Station'), _('Delete this Pandora Station'), 'gtk-remove')
         self.action_group.add_action(action)
          
         manager.insert_action_group(self.action_group, 0)
