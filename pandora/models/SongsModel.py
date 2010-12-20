@@ -72,12 +72,11 @@ class SongsModel(rhythmdb.QueryModel):
             prev = self.get_previous_from_entry(removing_entry)
             if prev is not None:
                 self.__last_entry = prev
-            
         del self.__songs_dict[url]
         self.remove_entry(removing_entry)
         self.__db.entry_delete(removing_entry)
         self.__db.commit()
-        #FIXME: Update last entry
+        
             
     #HACK around Python's QueryModel binding problem 
     def iter_to_entry(self, iter):
