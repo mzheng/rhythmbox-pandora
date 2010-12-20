@@ -11,6 +11,7 @@ import widgets
 import models
 
 import SearchDialog
+import DeleteDialog
 
 popup_ui = """
 <ui>
@@ -109,27 +110,29 @@ class PandoraSource(rb.StreamingSource):
             self.searchDialog.connect("response", self.add_station_cb)
     
     def show_delete_dialog(self, *args):
-       #TODO: Add a confirmation dialog
-       # delete station, if it is currently playing, play the first station instead    
-       selected = self.stations_list.get_selected_entries()
-       station_entry = selected[0]
-       url = station_entry.get_playback_uri()
-       station = self.stations_model.get_station(url)
-       self.worker_run(station.delete, context='net', message="Deleting Station...")
-       
-       self.stations_model.delete_station(url)
-       print "Deleted station %s " %(repr(station))
-       if self.current_station == station:
-           # exclude "QuickMix"
-           if self.stations_model.get_num_entries() <= 1:
-               return
-           first_station_entry = self.stations_model.get_first_station()
-           print "Deleted current station, play first station instead"
-           self.station_activated_cb(self.stations_list, first_station_entry)
-       
-       
-       
-            
+        selected = self.stations_list.get_selected_entries()
+        station_entry = selected[0]
+        url = station_entry.get_playback_uri()
+        station = self.stations_model.get_station(url)
+        
+        # Show Delete Confirmation Dialog
+        self.deleteDialog.set_property("text", "Are you sure you want to delete the station \"%s\"?"%(station.name))
+        response = self.deleteDialog.run()
+        self.deleteDialog.hide()
+
+        if response:
+            # delete station, if it is currently playing, play the first station instead
+            self.worker_run(station.delete, context='net', message="Deleting Station...")
+            self.stations_model.delete_station(url)
+            print "Deleted station %s " %(repr(station))
+            if self.current_station == station:
+                # exclude "QuickMix"
+                if self.stations_model.get_num_entries() <= 1:
+                    return
+                first_station_entry = self.stations_model.get_first_station()
+                print "Deleted current station, play first station instead"
+                self.station_activated_cb(self.stations_list, first_station_entry)
+           
     def add_station_cb(self, dialog, response):
         print "in add_station_cb", dialog.result, response
         if response == 1:
@@ -197,6 +200,7 @@ class PandoraSource(rb.StreamingSource):
             self.__entry_type = self.get_property('entry-type')
             
             self.searchDialog = None
+            self.deleteDialog = DeleteDialog.NewDeleteDialog(self.__plugin)
             
             self.create_window()
             self.create_popups()
