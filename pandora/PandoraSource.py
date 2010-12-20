@@ -156,14 +156,16 @@ class PandoraSource(rb.StreamingSource):
         
         
     def do_songs_show_popup(self, view, over_entry):
-        #FIXME: Only show if one entry is selected
-        if (over_entry):
-            self.show_source_popup("/PandoraSongViewPopup")
+        self.show_single_popup(view, over_entry, "/PandoraSongViewPopup")
             
     def do_stations_show_popup(self, view, over_entry):
-        if (over_entry):
-            self.show_source_popup("/PandoraStationViewPopup")
+        self.show_single_popup(view, over_entry, "/PandoraStationViewPopup")
                 
+    def show_single_popup(self, view, over_entry, popup):
+        if (over_entry):
+            selected = view.get_selected_entries()
+            if len(selected) == 1:
+                self.show_source_popup(popup)
             
     def create_popups(self):
         manager = self.__player.get_property('ui-manager')
