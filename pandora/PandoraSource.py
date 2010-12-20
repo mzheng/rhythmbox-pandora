@@ -23,6 +23,7 @@ popup_ui = """
     </popup>
     <popup name="PandoraSongViewPopup">
         <menuitem name="LoveSong" action="LoveSong"/>
+        <menuitem name="BanSong" action="BanSong" />
     </popup>
 </ui>
 """
@@ -93,7 +94,9 @@ class PandoraSource(rb.StreamingSource):
         
         
         action = self.action_group.get_action('LoveSong')
-        action.connect('activate', self.love_selected_songs)
+        action.connect('activate', self.love_selected_song)
+        action = self.action_group.get_action('BanSong')
+        action.connect('activate', self.ban_selected_song)
         
         action = self.action_group.get_action('AddStation')
         action.connect('activate', self.show_search_dialog)
@@ -148,9 +151,21 @@ class PandoraSource(rb.StreamingSource):
         self.station_activated_cb(self.stations_list, station_entry)
         
     
+    def ban_selected_song(self, *args):
+        selected = self.songs_list.get_selected_entries()
+        entry = selected[0]
+        url = entry.get_playback_uri()
+        song = self.songs_model.get_song(url) 
+        def callback(l):
+            print "Banned song: %s " %(song.title)
+        self.worker_run(song.rate, (RATE_BAN,), callback, "Banning song...")
+        
+        if song is self.current_song:
+            self.__player.do_next()
+        # Remove from playlist
+        self.songs_model.delete_song(url)
     
-    
-    def love_selected_songs(self, *args):
+    def love_selected_song(self, *args):
         selected = self.songs_list.get_selected_entries()
         for entry in selected:
             if not self.songs_list.has_star(entry):
@@ -174,6 +189,8 @@ class PandoraSource(rb.StreamingSource):
         manager = self.__player.get_property('ui-manager')
         self.action_group = gtk.ActionGroup('PandoraPluginActions')
         action = gtk.Action('LoveSong', _('Love Song'), _('I love this song'), 'gtk-about')
+        self.action_group.add_action(action)
+        action = gtk.Action('BanSong', _('Ban Song'), _("I don't like this song"), 'gtk-stop')
         self.action_group.add_action(action)
         
         action = gtk.Action('AddStation', _('Create a New Station'), _('Create a new Pandora station'), 'gtk-add')
@@ -215,6 +232,7 @@ class PandoraSource(rb.StreamingSource):
             self.songs_model = models.SongsModel(self.__db, self.__entry_type)
             self.songs_list.set_model(self.songs_model)
             self.current_station = None
+            self.current_song = None
             
             # Enables skipping
             self.set_property('query-model', self.songs_model)
@@ -358,6 +376,8 @@ class PandoraSource(rb.StreamingSource):
             return
         self.get_metadata(entry)
         
+        url = entry.get_playback_uri()
+        self.current_song = self.songs_model.get_song(url)
         if self.songs_model.is_last_entry(entry):
             self.get_playlist()
             

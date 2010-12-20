@@ -59,14 +59,26 @@ class SongsModel(rhythmdb.QueryModel):
         for removing_entry in removing:
             print "Removing Song %s" % (self.__db.entry_get(removing_entry, rhythmdb.PROP_TITLE))
             url = removing_entry.get_playback_uri()
-            del self.__songs_dict[url]
-            self.remove_entry(removing_entry)
-            self.__db.entry_delete(removing_entry)
+            self.delete_song(url)
         self.__db.commit()
     
     def clear(self):
         self.remove_old_songs(self.get_num_entries())
-        
+        self.__last_entry = None
+    
+    def delete_song(self, url):
+        removing_entry = self.__db.entry_lookup_by_location(url)
+        if self.is_last_entry(removing_entry):
+            prev = self.get_previous_from_entry(removing_entry)
+            if prev is not None:
+                self.__last_entry = prev
+            
+        del self.__songs_dict[url]
+        self.remove_entry(removing_entry)
+        self.__db.entry_delete(removing_entry)
+        self.__db.commit()
+        #FIXME: Update last entry
+            
     #HACK around Python's QueryModel binding problem 
     def iter_to_entry(self, iter):
         db = self.__db
