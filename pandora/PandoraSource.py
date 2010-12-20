@@ -2,6 +2,7 @@ import rhythmdb, rb
 import gobject, gtk
 import gst
 import gnomekeyring as keyring
+import webbrowser
 from time import time
 
 from pithos.pandora import *;
@@ -19,9 +20,11 @@ popup_ui = """
         <menuitem name="AddStation" action="AddStation"/>
     </popup>
     <popup name="PandoraStationViewPopup">
+        <menuitem name="StationInfo" action="StationInfo"/>
         <menuitem name="DeleteStation" action="DeleteStation"/>
     </popup>
     <popup name="PandoraSongViewPopup">
+        <menuitem name="SongInfo" action="SongInfo"/>
         <menuitem name="LoveSong" action="LoveSong"/>
         <menuitem name="BanSong" action="BanSong" />
         <menuitem name="TiredSong" action="TiredSong" />
@@ -94,6 +97,8 @@ class PandoraSource(rb.StreamingSource):
         self.songs_list.connect('show_popup', self.do_songs_show_popup)
         
         
+        action = self.action_group.get_action('SongInfo')
+        action.connect('activate', self.view_song_info)
         action = self.action_group.get_action('LoveSong')
         action.connect('activate', self.love_selected_song)
         action = self.action_group.get_action('BanSong')
@@ -101,6 +106,8 @@ class PandoraSource(rb.StreamingSource):
         action = self.action_group.get_action('TiredSong')
         action.connect('activate', self.tired_selected_song)
         
+        action = self.action_group.get_action('StationInfo')
+        action.connect('activate', self.view_station_info)
         action = self.action_group.get_action('AddStation')
         action.connect('activate', self.show_search_dialog)
         
@@ -152,7 +159,28 @@ class PandoraSource(rb.StreamingSource):
         print "Added and switching to station: %s" %(repr(station))
         station_entry = self.stations_model.add_station(station, station.name, 1) # After QuickMix
         self.station_activated_cb(self.stations_list, station_entry)
+    
+    def view_station_info(self, *args):
+        station = self.selected_station()
+        webbrowser.open(station.info_url)
         
+    def view_song_info(self, *args):
+        song = self.selected_song()
+        webbrowser.open(song.songDetailURL)
+    
+    def selected_song(self):
+        selected = self.songs_list.get_selected_entries()
+        entry = selected[0]
+        url = entry.get_playback_uri()
+        song = self.songs_model.get_song(url)
+        return song
+    
+    def selected_station(self):
+        selected = self.stations_list.get_selected_entries()
+        station_entry = selected[0]
+        url = station_entry.get_playback_uri()
+        station = self.stations_model.get_station(url)
+        return station
     
     def tired_selected_song(self, *args):
         song = self.delete_selected_song()
@@ -167,10 +195,7 @@ class PandoraSource(rb.StreamingSource):
         self.worker_run(song.rate, (RATE_BAN,), callback, "Banning song...")
     
     def delete_selected_song(self):
-        selected = self.songs_list.get_selected_entries()
-        entry = selected[0]
-        url = entry.get_playback_uri()
-        song = self.songs_model.get_song(url)
+        song = self.selected_song()
         if song is self.current_song:
             self.__player.do_next()
         # Remove from playlist
@@ -200,6 +225,8 @@ class PandoraSource(rb.StreamingSource):
     def create_popups(self):
         manager = self.__player.get_property('ui-manager')
         self.action_group = gtk.ActionGroup('PandoraPluginActions')
+        action = gtk.Action('SongInfo', _('Song Info...'), _('View song information in browser'), 'gtk-info')
+        self.action_group.add_action(action)
         action = gtk.Action('LoveSong', _('Love Song'), _('I love this song'), 'gtk-about')
         self.action_group.add_action(action)
         action = gtk.Action('BanSong', _('Ban Song'), _("I don't like this song"), 'gtk-cancel')
@@ -210,6 +237,8 @@ class PandoraSource(rb.StreamingSource):
         action = gtk.Action('AddStation', _('Create a New Station'), _('Create a new Pandora station'), 'gtk-add')
         self.action_group.add_action(action)
         
+        action = gtk.Action('StationInfo', _('Station Info...'), _('View station information in browser'), 'gtk-info')
+        self.action_group.add_action(action)
         action = gtk.Action('DeleteStation', _('Delete this Station'), _('Delete this Pandora Station'), 'gtk-remove')
         self.action_group.add_action(action)
          
