@@ -24,6 +24,7 @@ popup_ui = """
     <popup name="PandoraSongViewPopup">
         <menuitem name="LoveSong" action="LoveSong"/>
         <menuitem name="BanSong" action="BanSong" />
+        <menuitem name="TiredSong" action="TiredSong" />
     </popup>
 </ui>
 """
@@ -97,6 +98,8 @@ class PandoraSource(rb.StreamingSource):
         action.connect('activate', self.love_selected_song)
         action = self.action_group.get_action('BanSong')
         action.connect('activate', self.ban_selected_song)
+        action = self.action_group.get_action('TiredSong')
+        action.connect('activate', self.tired_selected_song)
         
         action = self.action_group.get_action('AddStation')
         action.connect('activate', self.show_search_dialog)
@@ -151,19 +154,28 @@ class PandoraSource(rb.StreamingSource):
         self.station_activated_cb(self.stations_list, station_entry)
         
     
+    def tired_selected_song(self, *args):
+        song = self.delete_selected_song()
+        def callback(l):
+            print "Tired of song: %s " %(song.title)
+        self.worker_run(song.set_tired, (), callback, "Putting song on shelf...")
+    
     def ban_selected_song(self, *args):
-        selected = self.songs_list.get_selected_entries()
-        entry = selected[0]
-        url = entry.get_playback_uri()
-        song = self.songs_model.get_song(url) 
+        song = self.delete_selected_song()
         def callback(l):
             print "Banned song: %s " %(song.title)
         self.worker_run(song.rate, (RATE_BAN,), callback, "Banning song...")
-        
+    
+    def delete_selected_song(self):
+        selected = self.songs_list.get_selected_entries()
+        entry = selected[0]
+        url = entry.get_playback_uri()
+        song = self.songs_model.get_song(url)
         if song is self.current_song:
             self.__player.do_next()
         # Remove from playlist
-        self.songs_model.delete_song(url)
+        self.songs_model.delete_song(url) 
+        return song
     
     def love_selected_song(self, *args):
         selected = self.songs_list.get_selected_entries()
@@ -190,7 +202,9 @@ class PandoraSource(rb.StreamingSource):
         self.action_group = gtk.ActionGroup('PandoraPluginActions')
         action = gtk.Action('LoveSong', _('Love Song'), _('I love this song'), 'gtk-about')
         self.action_group.add_action(action)
-        action = gtk.Action('BanSong', _('Ban Song'), _("I don't like this song"), 'gtk-stop')
+        action = gtk.Action('BanSong', _('Ban Song'), _("I don't like this song"), 'gtk-cancel')
+        self.action_group.add_action(action)
+        action = gtk.Action('TiredSong', _('Tired of this song'), _("I'm tired of this song"), 'gtk-jump-to')
         self.action_group.add_action(action)
         
         action = gtk.Action('AddStation', _('Create a New Station'), _('Create a new Pandora station'), 'gtk-add')
