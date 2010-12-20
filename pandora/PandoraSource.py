@@ -10,8 +10,13 @@ from pithos.gobject_worker import GObjectWorker
 import widgets
 import models
 
+import SearchDialog
+
 popup_ui = """
 <ui>
+    <popup name="PandoraSourceMainPopup">
+        <menuitem name="AddStation" action="AddStation"/>
+    </popup>
     <popup name="PandoraSongViewPopup">
         <menuitem name="LoveSong" action="LoveSong"/>
     </popup>
@@ -81,11 +86,34 @@ class PandoraSource(rb.StreamingSource):
         self.songs_list.connect('star', self.do_star_clicked)
         self.songs_list.connect('show_popup', self.do_songs_show_popup)
         
-        #FIXME: Change to appropriate action
         action = self.action_group.get_action('LoveSong')
-        action.connect('activate', self.do_love_song)
+        action.connect('activate', self.love_selected_songs)
+        
+        action = self.action_group.get_action('AddStation')
+        action.connect('activate', self.show_search_dialog)
     
-    def do_love_song(self, *args):
+    def show_search_dialog(self, *args):
+        if self.searchDialog:
+            self.searchDialog.present()
+        else:
+            self.searchDialog = SearchDialog.NewSearchDialog(self.__plugin, self.worker_run)
+            self.searchDialog.show_all()
+            self.searchDialog.connect("response", self.add_station_cb)
+    
+    def add_station_cb(self, dialog, response):
+        print "in add_station_cb", dialog.result, response
+        #TODO: Add Station
+        #if response == 1:
+            #self.worker_run("add_station_by_music_id", (dialog.result.musicId,), self.station_added, "Creating station...")
+        dialog.hide()
+        dialog.destroy()
+        self.searchDialog = None
+        
+    def station_added(self, station):
+        # Add station to list and start playing it
+        return
+    
+    def love_selected_songs(self, *args):
         selected = self.songs_list.get_selected_entries()
         for entry in selected:
             if not self.songs_list.has_star(entry):
@@ -102,11 +130,17 @@ class PandoraSource(rb.StreamingSource):
         self.action_group = gtk.ActionGroup('PandoraPluginActions')
         action = gtk.Action('LoveSong', _('Love Song'), _('I love this song'), 'gtk-about')
         self.action_group.add_action(action)
+        
+        action = gtk.Action('AddStation', _('Create a New Station'), _('Create a new Pandora station'), 'gtk-add')
+        self.action_group.add_action(action)
+         
         manager.insert_action_group(self.action_group, 0)
         self.ui_id = manager.add_ui_from_string(popup_ui)
         manager.ensure_update()
         
-        
+    def do_impl_show_popup(self):
+        self.show_source_popup("/PandoraSourceMainPopup")
+            
     def do_impl_get_entry_view(self):
         return self.songs_list
     
@@ -116,6 +150,8 @@ class PandoraSource(rb.StreamingSource):
             self.__db = shell.get_property('db')
             self.__player = shell.get_player()
             self.__entry_type = self.get_property('entry-type')
+            
+            self.searchDialog = None
             
             self.create_window()
             self.create_popups()
@@ -201,8 +237,13 @@ class PandoraSource(rb.StreamingSource):
         self.worker_run('connect', args, pandora_ready, message, 'login')
     
     def station_activated_cb(self, entry_view, station_entry):
+        prev_station = self.current_station
+        
         url = station_entry.get_playback_uri()
         self.current_station = self.stations_model.get_station(url)
+        
+        if prev_station != None and prev_station != self.current_station:
+            self.songs_model.clear()
         
         self.get_playlist(start = True)
         print "Station activated %s" %(url)
@@ -257,6 +298,7 @@ class PandoraSource(rb.StreamingSource):
             print "duration: %s" %(duration)
         except Exception,e:
             print "Could not query duration"
+            print e
             pass 
         
     def playing_entry_changed(self, entry):

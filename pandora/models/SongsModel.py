@@ -64,6 +64,9 @@ class SongsModel(rhythmdb.QueryModel):
             self.__db.entry_delete(removing_entry)
         self.__db.commit()
     
+    def clear(self):
+        self.remove_old_songs(self.get_num_entries())
+        
     #HACK around Python's QueryModel binding problem 
     def iter_to_entry(self, iter):
         db = self.__db
