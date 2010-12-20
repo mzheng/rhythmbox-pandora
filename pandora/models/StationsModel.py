@@ -8,13 +8,15 @@ class StationsModel(rhythmdb.QueryModel):
         self.__stations_dict = {}
         
         
-    def add_station(self, station, name):
+    def add_station(self, station, name, pos=-1):
         url = station.info_url
         entry = self.__db.entry_new(self.__entry_type, url)
         self.__db.set(entry, rhythmdb.PROP_TITLE, name) 
         
-        self.add_entry(entry, -1)
+        self.add_entry(entry, pos)
         self.__stations_dict[url] = station
+        
+        return entry
     
     def get_station(self, url):
         return self.__stations_dict[url] 

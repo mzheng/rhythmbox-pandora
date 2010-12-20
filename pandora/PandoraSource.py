@@ -102,16 +102,18 @@ class PandoraSource(rb.StreamingSource):
     
     def add_station_cb(self, dialog, response):
         print "in add_station_cb", dialog.result, response
-        #TODO: Add Station
-        #if response == 1:
-            #self.worker_run("add_station_by_music_id", (dialog.result.musicId,), self.station_added, "Creating station...")
+        if response == 1:
+            self.worker_run("add_station_by_music_id", (dialog.result.musicId,), self.station_added, "Creating station...")
         dialog.hide()
         dialog.destroy()
         self.searchDialog = None
         
     def station_added(self, station):
         # Add station to list and start playing it
-        return
+        print "Added Station: %s" %(repr(station))
+        station_entry = self.stations_model.add_station(station, station.name, 1) # After QuickMix
+        self.station_activated_cb(self.stations_list, station_entry)
+        
     
     def love_selected_songs(self, *args):
         selected = self.songs_list.get_selected_entries()
