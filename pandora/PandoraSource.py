@@ -28,6 +28,10 @@ popup_ui = """
         <menuitem name="LoveSong" action="LoveSong"/>
         <menuitem name="BanSong" action="BanSong" />
         <menuitem name="TiredSong" action="TiredSong" />
+        <menu action="Bookmark">
+                <menuitem name="BookmarkSong" action="BookmarkSong" />
+                <menuitem name="BookmarkArtist" action="BookmarkArtist" />
+        </menu>
     </popup>
 </ui>
 """
@@ -105,6 +109,10 @@ class PandoraSource(rb.StreamingSource):
         action.connect('activate', self.ban_selected_song)
         action = self.action_group.get_action('TiredSong')
         action.connect('activate', self.tired_selected_song)
+        action = self.action_group.get_action('BookmarkSong')
+        action.connect('activate', self.bookmark_song)
+        action = self.action_group.get_action('BookmarkArtist')
+        action.connect('activate', self.bookmark_artist)
         
         action = self.action_group.get_action('StationInfo')
         action.connect('activate', self.view_station_info)
@@ -113,6 +121,16 @@ class PandoraSource(rb.StreamingSource):
         
         action = self.action_group.get_action('DeleteStation')
         action.connect('activate', self.show_delete_dialog)
+    
+    def bookmark_song(self, *args):
+        song = self.selected_song()
+        self.worker_run(song.bookmark, (), None, "Bookmarking...")
+        print "Bookmarked song: %s" %(song.title)
+    
+    def bookmark_artist(self, *args):
+        song = self.selected_song()
+        self.worker_run(song.bookmark_artist, (), None, "Bookmarking...")
+        print "Bookmarked artist: %s" %(song.artist)
     
     def show_search_dialog(self, *args):
         if self.searchDialog:
@@ -232,6 +250,12 @@ class PandoraSource(rb.StreamingSource):
         action = gtk.Action('BanSong', _('Ban Song'), _("I don't like this song"), 'gtk-cancel')
         self.action_group.add_action(action)
         action = gtk.Action('TiredSong', _('Tired of this song'), _("I'm tired of this song"), 'gtk-jump-to')
+        self.action_group.add_action(action)
+        action = gtk.Action('Bookmark', _('Bookmark'), _('Bookmark...'), 'gtk-add')
+        self.action_group.add_action(action)
+        action = gtk.Action('BookmarkSong', _('Song'), _("Bookmark this song"), None)
+        self.action_group.add_action(action)
+        action = gtk.Action('BookmarkArtist', _('Artist'), _("Bookmark this artist"), None)
         self.action_group.add_action(action)
         
         action = gtk.Action('AddStation', _('Create a New Station'), _('Create a new Pandora station'), 'gtk-add')
