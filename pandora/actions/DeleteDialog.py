@@ -1,6 +1,6 @@
 import gtk
 def NewDeleteDialog(plugin):
-    ui_filename = plugin.find_file("pandora/DeleteDialog.ui")
+    ui_filename = plugin.find_file("pandora/actions/DeleteDialog.ui")
 
     builder = gtk.Builder()
     builder.add_from_file(ui_filename)    

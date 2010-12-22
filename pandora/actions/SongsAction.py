@@ -72,7 +72,7 @@ class SongsAction(object):
     def delete_selected_song(self):
         song = self.selected_song()
         url = song.audioUrl
-        if self.source.is_current(song):
+        if self.source.is_current_song(song):
             self.source.next_song()
         # Remove from playlist
         self.songs_model.delete_song(url) 

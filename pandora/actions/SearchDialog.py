@@ -95,7 +95,7 @@ def NewSearchDialog(plugin, worker_run):
     """
 
     #look for the ui file that describes the ui
-    ui_filename = plugin.find_file("pandora/SearchDialog.ui")
+    ui_filename = plugin.find_file("pandora/actions/SearchDialog.ui")
 
     
     builder = gtk.Builder()

@@ -19,6 +19,7 @@ class StationsModel(rhythmdb.QueryModel):
         return entry
     
     def get_station(self, url):
+        print "Number of stations: %d" %(len(self.__stations_dict))
         return self.__stations_dict[url] 
     
     def delete_station(self, url):

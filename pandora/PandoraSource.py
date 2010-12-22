@@ -2,7 +2,6 @@ import rhythmdb, rb
 import gobject, gtk
 import gst
 import gnomekeyring as keyring
-import webbrowser
 from time import time
 
 from pithos.pandora import *;
@@ -12,8 +11,6 @@ import widgets
 import models
 import actions
 
-import SearchDialog
-import DeleteDialog
 
 class PandoraSource(rb.StreamingSource):
     __gproperties__ = {
@@ -32,7 +29,6 @@ class PandoraSource(rb.StreamingSource):
         self.__db = None # rhythmdb
         self.__player = None
         
-        self.vbox_main = None
         
         self.worker = GObjectWorker()
     
@@ -77,93 +73,13 @@ class PandoraSource(rb.StreamingSource):
         self.stations_list.connect('entry-activated', self.station_activated_cb)
         self.stations_list.connect('selection-changed', self.station_selected_cb)
         self.stations_list.connect('show_popup', self.do_stations_show_popup)
-        
-        self.songs_action.connect()
-        
         self.songs_list.connect('show_popup', self.do_songs_show_popup)
-        
-        
+        self.songs_action.connect()
+        self.stations_action.connect()
 
         
-        action = self.action_group.get_action('StationInfo')
-        action.connect('activate', self.view_station_info)
-        action = self.action_group.get_action('AddStation')
-        action.connect('activate', self.show_search_dialog)
-        
-        action = self.action_group.get_action('DeleteStation')
-        action.connect('activate', self.show_delete_dialog)
-    
-
-    
-    def show_search_dialog(self, *args):
-        if self.searchDialog:
-            self.searchDialog.present()
-        else:
-            self.searchDialog = SearchDialog.NewSearchDialog(self.__plugin, self.worker_run)
-            self.searchDialog.show_all()
-            self.searchDialog.connect("response", self.add_station_cb)
-    
-    def show_delete_dialog(self, *args):
-        selected = self.stations_list.get_selected_entries()
-        station_entry = selected[0]
-        url = station_entry.get_playback_uri()
-        station = self.stations_model.get_station(url)
-        
-        # Show Delete Confirmation Dialog
-        self.deleteDialog.set_property("text", "Are you sure you want to delete the station \"%s\"?"%(station.name))
-        response = self.deleteDialog.run()
-        self.deleteDialog.hide()
-
-        if response:
-            # delete station, if it is currently playing, play the first station instead
-            self.worker_run(station.delete, context='net', message="Deleting Station...")
-            self.stations_model.delete_station(url)
-            print "Deleted station %s " %(repr(station))
-            if self.current_station == station:
-                # exclude "QuickMix"
-                if self.stations_model.get_num_entries() <= 1:
-                    return
-                first_station_entry = self.stations_model.get_first_station()
-                print "Deleted current station, play first station instead"
-                self.station_activated_cb(self.stations_list, first_station_entry)
-           
-    def add_station_cb(self, dialog, response):
-        print "in add_station_cb", dialog.result, response
-        if response == 1:
-            self.worker_run("add_station_by_music_id", (dialog.result.musicId,), self.station_added, "Creating station...")
-        dialog.hide()
-        dialog.destroy()
-        self.searchDialog = None
-        
-    def station_added(self, station):
-        # Add station to list and start playing it
-        print "Added and switching to station: %s" %(repr(station))
-        station_entry = self.stations_model.add_station(station, station.name, 1) # After QuickMix
-        self.station_activated_cb(self.stations_list, station_entry)
-    
-    def view_station_info(self, *args):
-        station = self.selected_station()
-        webbrowser.open(station.info_url)
-        
-
-    
-
-    
-    def selected_station(self):
-        selected = self.stations_list.get_selected_entries()
-        station_entry = selected[0]
-        url = station_entry.get_playback_uri()
-        station = self.stations_model.get_station(url)
-        return station
-    
-
-    
-
-    
-
-    
-
-        
+    def do_impl_show_popup(self):
+        self.show_source_popup("/PandoraSourceMainPopup")
         
     def do_songs_show_popup(self, view, over_entry):
         self.show_single_popup(view, over_entry, "/PandoraSongViewPopup")
@@ -208,8 +124,7 @@ class PandoraSource(rb.StreamingSource):
         self.ui_id = manager.add_ui_from_file(popup_file)
         manager.ensure_update()
         
-    def do_impl_show_popup(self):
-        self.show_source_popup("/PandoraSourceMainPopup")
+
             
     def do_impl_get_entry_view(self):
         return self.songs_list
@@ -221,8 +136,8 @@ class PandoraSource(rb.StreamingSource):
             self.__player = shell.get_player()
             self.__entry_type = self.get_property('entry-type')
             
-            self.searchDialog = None
-            self.deleteDialog = DeleteDialog.NewDeleteDialog(self.__plugin)
+            
+            self.vbox_main = None
             
             self.create_window()
             self.create_popups()
@@ -240,6 +155,7 @@ class PandoraSource(rb.StreamingSource):
             self.current_song = None
             
             self.songs_action = actions.SongsAction(self)
+            self.stations_action = actions.StationsAction(self, self.__plugin)
             self.connect_all()
             
             # Enables skipping
@@ -295,7 +211,7 @@ class PandoraSource(rb.StreamingSource):
         def pandora_ready(*ignore):
             #TODO: Selected station
             self.stations_model.clear()
-            self.stations_model = models.StationsModel(self.__db, self.__entry_type)
+            
             print "Pandora connected"
             #TODO: Station already exists
             for i in self.pandora.stations:
@@ -312,6 +228,9 @@ class PandoraSource(rb.StreamingSource):
         self.worker_run('connect', args, pandora_ready, message, 'login')
     
     def station_activated_cb(self, entry_view, station_entry):
+        self.play_station(station_entry)
+        
+    def play_station(self, station_entry):
         prev_station = self.current_station
         
         url = station_entry.get_playback_uri()
@@ -326,7 +245,6 @@ class PandoraSource(rb.StreamingSource):
         now = int(time.time())
         self.__db.set(station_entry, rhythmdb.PROP_LAST_PLAYED, now)
         
-        
     def station_selected_cb(self, entry_view):
         print "Station selected"
         if (self.current_station != None):
@@ -335,7 +253,7 @@ class PandoraSource(rb.StreamingSource):
         if not selected:
             return
         station_entry = selected[0]
-        self.station_activated_cb(entry_view, station_entry)
+        self.play_station(station_entry)
 
     def get_playlist(self, start = False):
         if self.waiting_for_playlist: return
@@ -393,8 +311,11 @@ class PandoraSource(rb.StreamingSource):
     def next_song(self):
         self.__player.do_next()
     
-    def is_current(self, song):
+    def is_current_song(self, song):
         return song is self.current_song
+    
+    def is_current_station(self, station):
+        return station is self.current_station
         
 
         
