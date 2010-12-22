@@ -1,0 +1,19 @@
+<ui>
+    <popup name="PandoraSourceMainPopup">
+        <menuitem name="AddStation" action="AddStation"/>
+    </popup>
+    <popup name="PandoraStationViewPopup">
+        <menuitem name="StationInfo" action="StationInfo"/>
+        <menuitem name="DeleteStation" action="DeleteStation"/>
+    </popup>
+    <popup name="PandoraSongViewPopup">
+        <menuitem name="SongInfo" action="SongInfo"/>
+        <menuitem name="LoveSong" action="LoveSong"/>
+        <menuitem name="BanSong" action="BanSong" />
+        <menuitem name="TiredSong" action="TiredSong" />
+        <menu action="Bookmark">
+                <menuitem name="BookmarkSong" action="BookmarkSong" />
+                <menuitem name="BookmarkArtist" action="BookmarkArtist" />
+        </menu>
+    </popup>
+</ui>

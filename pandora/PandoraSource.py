@@ -14,27 +14,6 @@ import models
 import SearchDialog
 import DeleteDialog
 
-popup_ui = """
-<ui>
-    <popup name="PandoraSourceMainPopup">
-        <menuitem name="AddStation" action="AddStation"/>
-    </popup>
-    <popup name="PandoraStationViewPopup">
-        <menuitem name="StationInfo" action="StationInfo"/>
-        <menuitem name="DeleteStation" action="DeleteStation"/>
-    </popup>
-    <popup name="PandoraSongViewPopup">
-        <menuitem name="SongInfo" action="SongInfo"/>
-        <menuitem name="LoveSong" action="LoveSong"/>
-        <menuitem name="BanSong" action="BanSong" />
-        <menuitem name="TiredSong" action="TiredSong" />
-        <menu action="Bookmark">
-                <menuitem name="BookmarkSong" action="BookmarkSong" />
-                <menuitem name="BookmarkArtist" action="BookmarkArtist" />
-        </menu>
-    </popup>
-</ui>
-"""
 class PandoraSource(rb.StreamingSource):
     __gproperties__ = {
             'plugin': (rb.Plugin,
@@ -267,7 +246,8 @@ class PandoraSource(rb.StreamingSource):
         self.action_group.add_action(action)
          
         manager.insert_action_group(self.action_group, 0)
-        self.ui_id = manager.add_ui_from_string(popup_ui)
+        popup_file = self.__plugin.find_file("pandora-ui.xml")
+        self.ui_id = manager.add_ui_from_file(popup_file)
         manager.ensure_update()
         
     def do_impl_show_popup(self):
