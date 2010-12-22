@@ -15,6 +15,9 @@ class StationsAction(object):
         return
     
     def connect(self):
+        self.stations_list.connect('entry-activated', self.station_activated_cb)
+        self.stations_list.connect('selection-changed', self.station_selected_cb)
+        
         action = self.action_group.get_action('StationInfo')
         action.connect('activate', self.view_station_info)
         action = self.action_group.get_action('AddStation')
@@ -22,6 +25,19 @@ class StationsAction(object):
         
         action = self.action_group.get_action('DeleteStation')
         action.connect('activate', self.show_delete_dialog)
+        
+    def station_activated_cb(self, entry_view, station_entry):
+        self.source.play_station(station_entry)
+        
+    def station_selected_cb(self, entry_view):
+        print "Station selected"
+        if not self.source.is_current_station(None):
+            return
+        selected = entry_view.get_selected_entries()
+        if not selected:
+            return
+        station_entry = selected[0]
+        self.source.play_station(station_entry)
     
     def view_station_info(self, *args):
         station = self.selected_station()

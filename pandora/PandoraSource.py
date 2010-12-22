@@ -37,17 +37,47 @@ class PandoraSource(rb.StreamingSource):
             self.__plugin = value
         else:
             raise AttributeError, 'unknown property %s' % property.name
+    
+    def do_impl_get_entry_view(self):
+        return self.songs_list
+    
+    def do_impl_can_pause(self):
+        return True
+    
+    def do_impl_handle_eos(self):
+        return rb.SourceEOFType(3) #next
+    
+    def do_impl_try_playlist(self):
+        return False
+    
+    def do_impl_show_popup(self):
+        self.show_source_popup("/PandoraSourceMainPopup")
         
-    def get_pandora_account_info(self):
-        try:
-            result_list = keyring.find_items_sync(keyring.ITEM_GENERIC_SECRET, {'rhythmbox-plugin': 'pandora'})
-        except gk.NoMatchError:
-            print "Pandora Account Info not found"
-            #TODO: Ask User to configure account
-            return None, None
-        result = result_list[0]
-        secret = result.secret
-        return tuple(secret.split('\n'))
+    def do_songs_show_popup(self, view, over_entry):
+        self.show_single_popup(view, over_entry, "/PandoraSongViewPopup")
+            
+    def do_stations_show_popup(self, view, over_entry):
+        self.show_single_popup(view, over_entry, "/PandoraStationViewPopup")
+                
+    def show_single_popup(self, view, over_entry, popup):
+        if (over_entry):
+            selected = view.get_selected_entries()
+            if len(selected) == 1:
+                self.show_source_popup(popup)
+    
+    #Override            
+    def playing_entry_changed(self, entry):
+        print "Playing Entry changed"
+        if not self.__db or not entry:
+            return
+        if entry.get_entry_type() != self.__entry_type:
+            return
+        self.get_metadata(entry)
+        
+        url = entry.get_playback_uri()
+        self.current_song = self.songs_model.get_song(url)
+        if self.songs_model.is_last_entry(entry):
+            self.get_playlist()
     
     def create_window(self):
         if self.vbox_main:
@@ -70,29 +100,11 @@ class PandoraSource(rb.StreamingSource):
         self.add(self.vbox_main)
 
     def connect_all(self):
-        self.stations_list.connect('entry-activated', self.station_activated_cb)
-        self.stations_list.connect('selection-changed', self.station_selected_cb)
         self.stations_list.connect('show_popup', self.do_stations_show_popup)
         self.songs_list.connect('show_popup', self.do_songs_show_popup)
         self.songs_action.connect()
         self.stations_action.connect()
 
-        
-    def do_impl_show_popup(self):
-        self.show_source_popup("/PandoraSourceMainPopup")
-        
-    def do_songs_show_popup(self, view, over_entry):
-        self.show_single_popup(view, over_entry, "/PandoraSongViewPopup")
-            
-    def do_stations_show_popup(self, view, over_entry):
-        self.show_single_popup(view, over_entry, "/PandoraStationViewPopup")
-                
-    def show_single_popup(self, view, over_entry, popup):
-        if (over_entry):
-            selected = view.get_selected_entries()
-            if len(selected) == 1:
-                self.show_source_popup(popup)
-            
     def create_popups(self):
         manager = self.__player.get_property('ui-manager')
         self.action_group = gtk.ActionGroup('PandoraPluginActions')
@@ -124,11 +136,6 @@ class PandoraSource(rb.StreamingSource):
         self.ui_id = manager.add_ui_from_file(popup_file)
         manager.ensure_update()
         
-
-            
-    def do_impl_get_entry_view(self):
-        return self.songs_list
-    
     def do_impl_activate(self):
         if not self.__activated:
             shell = self.get_property('shell')
@@ -168,15 +175,6 @@ class PandoraSource(rb.StreamingSource):
             
             self.__activated = True
             
-    def do_impl_can_pause(self):
-        return True
-    
-    def do_impl_handle_eos(self):
-        return rb.SourceEOFType(3) #next
-    
-    def do_impl_try_playlist(self):
-        return False
-    
     # TODO: Update UI and Error Msg
     def worker_run(self, fn, args=(), callback=None, message=None, context='net'):
         
@@ -203,7 +201,18 @@ class PandoraSource(rb.StreamingSource):
                 print e.traceback
                 
         self.worker.send(fn, args, cb, eb)
-        
+  
+    def get_pandora_account_info(self):
+        try:
+            result_list = keyring.find_items_sync(keyring.ITEM_GENERIC_SECRET, {'rhythmbox-plugin': 'pandora'})
+        except gk.NoMatchError:
+            print "Pandora Account Info not found"
+            #TODO: Ask User to configure account
+            return None, None
+        result = result_list[0]
+        secret = result.secret
+        return tuple(secret.split('\n'))
+      
     def pandora_connect(self, message="Logging in...", callback=None):
         args = (self.username,
                 self.password)
@@ -226,9 +235,6 @@ class PandoraSource(rb.StreamingSource):
                 callback()       
                 
         self.worker_run('connect', args, pandora_ready, message, 'login')
-    
-    def station_activated_cb(self, entry_view, station_entry):
-        self.play_station(station_entry)
         
     def play_station(self, station_entry):
         prev_station = self.current_station
@@ -245,16 +251,6 @@ class PandoraSource(rb.StreamingSource):
         now = int(time.time())
         self.__db.set(station_entry, rhythmdb.PROP_LAST_PLAYED, now)
         
-    def station_selected_cb(self, entry_view):
-        print "Station selected"
-        if (self.current_station != None):
-            return
-        selected = entry_view.get_selected_entries()
-        if not selected:
-            return
-        station_entry = selected[0]
-        self.play_station(station_entry)
-
     def get_playlist(self, start = False):
         if self.waiting_for_playlist: return
             
@@ -294,20 +290,6 @@ class PandoraSource(rb.StreamingSource):
             print e
             pass 
         
-    def playing_entry_changed(self, entry):
-        print "Playing Entry changed"
-        if not self.__db or not entry:
-            return
-        if entry.get_entry_type() != self.__entry_type:
-            return
-        self.get_metadata(entry)
-        
-        url = entry.get_playback_uri()
-        self.current_song = self.songs_model.get_song(url)
-        if self.songs_model.is_last_entry(entry):
-            self.get_playlist()
-            
-
     def next_song(self):
         self.__player.do_next()
     
