@@ -71,7 +71,7 @@ class StationsAction(object):
     def station_added(self, station):
         # Add station to list and start playing it
         print "Added and switching to station: %s" %(repr(station))
-        station_entry = self.stations_model.add_station(station, station.name, 1) # After QuickMix
+        station_entry = self.stations_model.add_station(station, station.name, 0) #1) # After QuickMix
         self.source.play_station(station_entry)
         
         
@@ -93,7 +93,7 @@ class StationsAction(object):
             print "Deleted station %s " %(repr(station))
             if self.source.is_current_station(station):
                 # exclude "QuickMix"
-                if self.stations_model.get_num_entries() <= 1:
+                if self.stations_model.get_num_entries() <= 0: #1:
                     return
                 first_station_entry = self.stations_model.get_first_station()
                 print "Deleted current station, play first station instead"

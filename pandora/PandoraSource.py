@@ -223,9 +223,10 @@ class PandoraSource(rb.StreamingSource):
             
             print "Pandora connected"
             #TODO: Station already exists
-            for i in self.pandora.stations:
-                if i.isQuickMix:
-                    self.stations_model.add_station(i, "QuickMix")
+            #FIXME: Leave out QuickMix for now
+            #for i in self.pandora.stations:
+            #    if i.isQuickMix:
+            #        self.stations_model.add_station(i, "QuickMix")
             
             for i in self.pandora.stations:
                 if not i.isQuickMix:

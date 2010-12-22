@@ -41,7 +41,7 @@ class StationsModel(rhythmdb.QueryModel):
     # Get the first station after "QuickMix"
     def get_first_station(self):
         iter = self.get_iter_first()
-        iter = self.iter_next(iter)
+        #iter = self.iter_next(iter)
         entry = self.iter_to_entry(iter)
         return entry
         
