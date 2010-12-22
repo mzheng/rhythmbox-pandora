@@ -10,6 +10,7 @@ from pithos.gobject_worker import GObjectWorker
 
 import widgets
 import models
+import actions
 
 import SearchDialog
 import DeleteDialog
@@ -76,22 +77,13 @@ class PandoraSource(rb.StreamingSource):
         self.stations_list.connect('entry-activated', self.station_activated_cb)
         self.stations_list.connect('selection-changed', self.station_selected_cb)
         self.stations_list.connect('show_popup', self.do_stations_show_popup)
-        self.songs_list.connect('star', self.do_star_clicked)
+        
+        self.songs_action.connect()
+        
         self.songs_list.connect('show_popup', self.do_songs_show_popup)
         
         
-        action = self.action_group.get_action('SongInfo')
-        action.connect('activate', self.view_song_info)
-        action = self.action_group.get_action('LoveSong')
-        action.connect('activate', self.love_selected_song)
-        action = self.action_group.get_action('BanSong')
-        action.connect('activate', self.ban_selected_song)
-        action = self.action_group.get_action('TiredSong')
-        action.connect('activate', self.tired_selected_song)
-        action = self.action_group.get_action('BookmarkSong')
-        action.connect('activate', self.bookmark_song)
-        action = self.action_group.get_action('BookmarkArtist')
-        action.connect('activate', self.bookmark_artist)
+
         
         action = self.action_group.get_action('StationInfo')
         action.connect('activate', self.view_station_info)
@@ -101,15 +93,7 @@ class PandoraSource(rb.StreamingSource):
         action = self.action_group.get_action('DeleteStation')
         action.connect('activate', self.show_delete_dialog)
     
-    def bookmark_song(self, *args):
-        song = self.selected_song()
-        self.worker_run(song.bookmark, (), None, "Bookmarking...")
-        print "Bookmarked song: %s" %(song.title)
-    
-    def bookmark_artist(self, *args):
-        song = self.selected_song()
-        self.worker_run(song.bookmark_artist, (), None, "Bookmarking...")
-        print "Bookmarked artist: %s" %(song.artist)
+
     
     def show_search_dialog(self, *args):
         if self.searchDialog:
@@ -161,16 +145,9 @@ class PandoraSource(rb.StreamingSource):
         station = self.selected_station()
         webbrowser.open(station.info_url)
         
-    def view_song_info(self, *args):
-        song = self.selected_song()
-        webbrowser.open(song.songDetailURL)
+
     
-    def selected_song(self):
-        selected = self.songs_list.get_selected_entries()
-        entry = selected[0]
-        url = entry.get_playback_uri()
-        song = self.songs_model.get_song(url)
-        return song
+
     
     def selected_station(self):
         selected = self.stations_list.get_selected_entries()
@@ -179,32 +156,13 @@ class PandoraSource(rb.StreamingSource):
         station = self.stations_model.get_station(url)
         return station
     
-    def tired_selected_song(self, *args):
-        song = self.delete_selected_song()
-        def callback(l):
-            print "Tired of song: %s " %(song.title)
-        self.worker_run(song.set_tired, (), callback, "Putting song on shelf...")
+
     
-    def ban_selected_song(self, *args):
-        song = self.delete_selected_song()
-        def callback(l):
-            print "Banned song: %s " %(song.title)
-        self.worker_run(song.rate, (RATE_BAN,), callback, "Banning song...")
+
     
-    def delete_selected_song(self):
-        song = self.selected_song()
-        if song is self.current_song:
-            self.__player.do_next()
-        # Remove from playlist
-        self.songs_model.delete_song(url) 
-        return song
+
     
-    def love_selected_song(self, *args):
-        selected = self.songs_list.get_selected_entries()
-        for entry in selected:
-            if not self.songs_list.has_star(entry):
-                self.songs_list.add_star(entry)
-                self.love_song(entry)
+
         
         
     def do_songs_show_popup(self, view, over_entry):
@@ -269,7 +227,7 @@ class PandoraSource(rb.StreamingSource):
             self.create_window()
             self.create_popups()
             
-            self.connect_all()
+            
             
             
             self.username, self.password = self.get_pandora_account_info()
@@ -280,6 +238,9 @@ class PandoraSource(rb.StreamingSource):
             self.songs_list.set_model(self.songs_model)
             self.current_station = None
             self.current_song = None
+            
+            self.songs_action = actions.SongsAction(self)
+            self.connect_all()
             
             # Enables skipping
             self.set_property('query-model', self.songs_model)
@@ -428,15 +389,12 @@ class PandoraSource(rb.StreamingSource):
         if self.songs_model.is_last_entry(entry):
             self.get_playlist()
             
-    def do_star_clicked(self, entryview, model, iter):
-        entry = model.iter_to_entry(iter)
-        self.love_song(entry) 
+
+    def next_song(self):
+        self.__player.do_next()
+    
+    def is_current(self, song):
+        return song is self.current_song
         
-    def love_song(self, entry):
-        url = entry.get_playback_uri()
-        song = self.songs_model.get_song(url) 
-        def callback(l):
-            print "Loved song: %s " %(song.title)
-            #TODO: Add feedback
-        self.worker_run(song.rate, (RATE_LOVE,), callback, "Loving song...")
+
         
