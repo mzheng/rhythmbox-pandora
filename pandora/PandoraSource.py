@@ -88,17 +88,48 @@ class PandoraSource(rb.StreamingSource):
         self.stations_list = widgets.StationEntryView(self.__db, self.__player)
         self.songs_list = widgets.SongEntryView(self.__db, self.__player, self.__plugin)
         
-        self.vbox_main = gtk.VPaned()
-        vbox_1 = gtk.VBox()
-        vbox_1.pack_start(self.stations_list)
-        self.vbox_main.pack1(vbox_1, True, False)
-        vbox_2 = gtk.VBox()
-        vbox_2.pack_start(self.songs_list)
-        self.vbox_main.pack2(vbox_2, True, False)
+        self.vbox_main = gtk.VBox(False, 5)
+        
+        paned = gtk.VPaned()
+        frame1 = gtk.Frame()
+        frame1.set_shadow_type(gtk.SHADOW_OUT)
+        frame1.add(self.stations_list)
+        #vbox_1 = gtk.VBox(False, 5)
+        #vbox_1.pack_start(self.stations_list)
+        #paned.pack1(vbox_1, True, False)
+        paned.pack1(frame1, True, False)
+        #vbox_2 = gtk.VBox(False, 5)
+        #vbox_2.pack_start(self.songs_list)
+        frame2 = gtk.Frame()
+        frame2.set_shadow_type(gtk.SHADOW_OUT)
+        frame2.add(self.songs_list)
+        paned.pack2(frame2, True, False)
+        self.vbox_main.pack_start(paned)
+
+        #FIXME: Only add for error 
+        builder_file = self.__plugin.find_file("error_area.ui")
+        builder = gtk.Builder()
+        builder.add_from_file(builder_file)
+        error_frame = builder.get_object('error_frame')
+        error_area = builder.get_object('error_event_box')
+        window = gtk.Window(gtk.WINDOW_POPUP)
+        window.set_name("gtk-tooltip")
+        window.ensure_style()
+        style = window.get_style()
+        print repr(style)
+        error_area.set_style(style)
+        error_frame.set_style(style)
+        account_button = builder.get_object("account_settings")
+        account_button.connect("clicked", self.on_account_settings_clicked)
+        self.vbox_main.pack_end(error_frame, False, False)
+ 
         self.vbox_main.show_all()
-    
+        
         self.add(self.vbox_main)
 
+    def on_account_settings_clicked(self, *args):
+        self.__plugin.create_configure_dialog()
+        
     def connect_all(self):
         self.stations_list.connect('show_popup', self.do_stations_show_popup)
         self.songs_list.connect('show_popup', self.do_songs_show_popup)
