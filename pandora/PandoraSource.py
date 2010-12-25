@@ -21,17 +21,67 @@ class PandoraSource(rb.StreamingSource):
     }
       
     def __init__(self):
-        #rb.BrowserSource.__init__(self)
         rb.StreamingSource.__init__(self)
         
-        # source state
+    def init(self):
         self.__activated = False
-        self.__db = None # rhythmdb
-        self.__player = None
+        shell = self.get_property('shell')
+        self.__db = shell.get_property('db')
+        self.__player = shell.get_player()
+        self.__entry_type = self.get_property('entry-type')
+            
+            
+        self.vbox_main = None
+            
+        self.create_window()
+        self.create_popups()
         
-        
+        #Pandora
+        self.pandora = make_pandora()
         self.worker = GObjectWorker()
+        self.stations_model = models.StationsModel(self.__db, self.__entry_type)
+        self.songs_model = models.SongsModel(self.__db, self.__entry_type)
+        self.songs_list.set_model(self.songs_model)
+        self.current_station = None
+        self.current_song = None
+        self.connected = False
+        self.request_outstanding = False
+        
+        self.songs_action = actions.SongsAction(self)
+        self.stations_action = actions.StationsAction(self, self.__plugin)
+        self.connect_all()
+        
+        # Enables skipping
+        self.set_property('query-model', self.songs_model)
+        
+        self.retrying = False
+        self.waiting_for_playlist = False
+        
+        
     
+    def do_impl_get_status(self):
+        progress_text = None
+        progress = 1
+        text = ""
+        if self.connected:
+            self.hide_error_area()
+            num_stations = self.stations_model.get_num_entries()
+            if num_stations > 1:
+                text =  str(num_stations) + " stations"
+            else:
+                text =  str(num_stations) + " station"
+        else:
+            text = "Not connected to Pandora"
+        
+        # Display Current Station Info
+        if self.__player.get_playing() and self.__player.get_playing_source() == self:
+            station_name = self.current_station.name
+            text = "Playing " + station_name + ", " + text 
+        if self.request_outstanding:
+            progress_text = self.request_description
+            progress = -1
+        return (text, progress_text, progress)
+        
     def do_set_property(self, property, value):
         if property.name == 'plugin':
             self.__plugin = value
@@ -94,41 +144,47 @@ class PandoraSource(rb.StreamingSource):
         frame1 = gtk.Frame()
         frame1.set_shadow_type(gtk.SHADOW_OUT)
         frame1.add(self.stations_list)
-        #vbox_1 = gtk.VBox(False, 5)
-        #vbox_1.pack_start(self.stations_list)
-        #paned.pack1(vbox_1, True, False)
         paned.pack1(frame1, True, False)
-        #vbox_2 = gtk.VBox(False, 5)
-        #vbox_2.pack_start(self.songs_list)
         frame2 = gtk.Frame()
         frame2.set_shadow_type(gtk.SHADOW_OUT)
         frame2.add(self.songs_list)
         paned.pack2(frame2, True, False)
         self.vbox_main.pack_start(paned)
-
-        #FIXME: Only add for error 
+ 
+        error_frame = self.create_error_area()
+        self.error_area = error_frame
+        self.vbox_main.pack_end(error_frame, False, False)
+ 
+        self.vbox_main.show_all()
+        error_frame.hide()
+        
+        self.add(self.vbox_main)
+    
+    #TODO: Refactor to own class
+    def create_error_area(self):
         builder_file = self.__plugin.find_file("error_area.ui")
         builder = gtk.Builder()
         builder.add_from_file(builder_file)
         error_frame = builder.get_object('error_frame')
         error_area = builder.get_object('error_event_box')
+        self.primary_error = builder.get_object('primary_message')
+        self.secondary_error = builder.get_object('secondary_message')
+        # Hack to get the tooltip background color
         window = gtk.Window(gtk.WINDOW_POPUP)
         window.set_name("gtk-tooltip")
         window.ensure_style()
         style = window.get_style()
-        print repr(style)
         error_area.set_style(style)
         error_frame.set_style(style)
+        
         account_button = builder.get_object("account_settings")
         account_button.connect("clicked", self.on_account_settings_clicked)
-        self.vbox_main.pack_end(error_frame, False, False)
- 
-        self.vbox_main.show_all()
         
-        self.add(self.vbox_main)
-
+        return error_frame
+    
     def on_account_settings_clicked(self, *args):
-        self.__plugin.create_configure_dialog()
+        self.__plugin.create_configure_dialog(callback=self.do_impl_activate)
+        
         
     def connect_all(self):
         self.stations_list.connect('show_popup', self.do_stations_show_popup)
@@ -168,51 +224,35 @@ class PandoraSource(rb.StreamingSource):
         manager.ensure_update()
         
     def do_impl_activate(self):
+        print "Activating source"
         if not self.__activated:
-            shell = self.get_property('shell')
-            self.__db = shell.get_property('db')
-            self.__player = shell.get_player()
-            self.__entry_type = self.get_property('entry-type')
+            try:
+                self.username, self.password = self.get_pandora_account_info()
+            except AccountNotSetException, (instance):
+                #Ask User to configure account
+                self.show_error_area(instance.parameter)
+                #Retry after user put in account
+                return
             
-            
-            self.vbox_main = None
-            
-            self.create_window()
-            self.create_popups()
-            
-            
-            
-            
-            self.username, self.password = self.get_pandora_account_info()
-            #Pandora
-            self.pandora = make_pandora()
-            self.stations_model = models.StationsModel(self.__db, self.__entry_type)
-            self.songs_model = models.SongsModel(self.__db, self.__entry_type)
-            self.songs_list.set_model(self.songs_model)
-            self.current_station = None
-            self.current_song = None
-            
-            self.songs_action = actions.SongsAction(self)
-            self.stations_action = actions.StationsAction(self, self.__plugin)
-            self.connect_all()
-            
-            # Enables skipping
-            self.set_property('query-model', self.songs_model)
-            
-            self.retrying = False
-            self.waiting_for_playlist = False
             self.pandora_connect()
-
             
             self.__activated = True
             
+
+        
     # TODO: Update UI and Error Msg
     def worker_run(self, fn, args=(), callback=None, message=None, context='net'):
+        self.request_outstanding = True
+        self.request_description = message
+        self.notify_status_changed()
         
         if isinstance(fn,str):
             fn = getattr(self.pandora, fn)
             
         def cb(v):
+            self.request_outstanding = False
+            self.request_description = None
+            self.notify_status_changed()
             if callback: callback(v)
             
         def eb(e):
@@ -221,12 +261,25 @@ class PandoraSource(rb.StreamingSource):
                 self.retrying = False
                 if fn is not self.pandora.connect:
                     self.worker_run(fn, args, callback, message, context)
-                
+            
+            self.request_outstanding = False
+            self.request_description = None 
+            self.notify_status_changed()   
             if isinstance(e, PandoraAuthTokenInvalid) and not self.retrying:
                 self.retrying = True
+                self.connected = False
                 print "Automatic reconnect after invalid auth token"                
                 self.pandora_connect("Reconnecting...", retry_cb)
+            elif isinstance(e, PandoraNetError):
+                error_message = "Unable to connect. Check your Internet connection."
+                detail = e.message
+                self.__activated = False
+                self.show_error_area(error_message, detail)
+                print e.message
             elif isinstance(e, PandoraError):
+                error_message = "Invalid username and/or password.  Check your settings."
+                self.__activated = False
+                self.show_error_area(error_message)
                 print e.message
             else:
                 print e.traceback
@@ -234,22 +287,39 @@ class PandoraSource(rb.StreamingSource):
         self.worker.send(fn, args, cb, eb)
   
     def get_pandora_account_info(self):
+        error_message = "Account details are needed before you can connect.  Check your settings."
+        print "Getting account details..."
         try:
             result_list = keyring.find_items_sync(keyring.ITEM_GENERIC_SECRET, {'rhythmbox-plugin': 'pandora'})
-        except gk.NoMatchError:
+        except keyring.NoMatchError:
             print "Pandora Account Info not found"
-            #TODO: Ask User to configure account
-            return None, None
+            raise AccountNotSetException(error_message)
+            
         result = result_list[0]
         secret = result.secret
+        if secret is "":
+            print "Pandora Account Info not found"
+            raise AccountNotSetException(error_message)
         return tuple(secret.split('\n'))
-      
+    
+    def show_error_area(self, primary_message, secondary_message=None):
+        self.primary_error.set_text(primary_message)
+        if secondary_message is None:
+            self.secondary_error.hide()
+        else:
+            self.secondary_error.set_text(secondary_message)
+            self.secondary_error.show()
+        self.error_area.show()
+    
+    def hide_error_area(self):
+        self.error_area.hide()
+        
+        
     def pandora_connect(self, message="Logging in...", callback=None):
         args = (self.username,
                 self.password)
                 
         def pandora_ready(*ignore):
-            #TODO: Selected station
             self.stations_model.clear()
             
             print "Pandora connected"
@@ -263,6 +333,7 @@ class PandoraSource(rb.StreamingSource):
                 if not i.isQuickMix:
                     self.stations_model.add_station(i, i.name)
             self.stations_list.set_model(self.stations_model)
+            self.connected = True
             if callback:
                 callback()       
                 
@@ -331,5 +402,9 @@ class PandoraSource(rb.StreamingSource):
     def is_current_station(self, station):
         return station is self.current_station
         
-
+class AccountNotSetException(Exception):
+    def __init__(self, value):
+        self.parameter = value
+    def __str__(self):
+        return repr(self.parameter)
         

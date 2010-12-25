@@ -63,7 +63,9 @@ class SongsModel(rhythmdb.QueryModel):
         self.__db.commit()
     
     def clear(self):
-        self.remove_old_songs(self.get_num_entries())
+        num_entries = self.get_num_entries()
+        if num_entries > 0:
+            self.remove_old_songs(num_entries)
         self.__last_entry = None
     
     def delete_song(self, url):

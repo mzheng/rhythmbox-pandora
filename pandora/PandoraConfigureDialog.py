@@ -2,10 +2,11 @@ import gobject, gtk
 import gnomekeyring as keyring
 
 class PandoraConfigureDialog(object):
-    def __init__(self, builder_file):
+    def __init__(self, builder_file, callback):
         self.__builder = gtk.Builder()
         self.__builder.add_from_file(builder_file)
         
+        self.callback = callback
         self.dialog = self.__builder.get_object('preferences_dialog')
         self.dialog.connect("response", self.close_button_pressed)
         
@@ -29,6 +30,10 @@ class PandoraConfigureDialog(object):
             self.__keyring_data['item'].set_secret('\n'.join((username, password)))
         keyring.item_set_info_sync(None, self.__keyring_data['id'], self.__keyring_data['item'])
         dialog.hide()
+        
+        if self.callback:
+            self.callback()
+            self.callback = None
     
     def fill_account_details(self):
         try:

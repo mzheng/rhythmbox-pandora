@@ -17,7 +17,7 @@ class PandoraPlugin(rb.Plugin):
         rb.Plugin.__init__(self)
             
     def activate(self, shell):
-        print "activating sample python plugin"
+        print "activating pandora plugin"
         db = shell.props.db
         entry_type = db.entry_register_type("PandoraEntryType")
         
@@ -33,22 +33,27 @@ class PandoraPlugin(rb.Plugin):
         shell.append_source(self.source, None)
         shell.register_entry_type_for_source(self.source, entry_type)
         
+        # hack, should be done within gobject constructor
+        self.source.init()
+        
         self.pec_id = shell.get_player().connect_after('playing-song-changed', self.playing_entry_changed)
         
 
     def deactivate(self, shell):
         #TODO: CLEANUP
-        print "deactivating sample python plugin"
+        print "deactivating pandora plugin"
         shell.get_player().disconnect (self.pec_id)
         self.source.delete_thyself()
         self.source = None
         
-    def create_configure_dialog(self, dialog=None):
+    def create_configure_dialog(self, dialog=None, callback=None):
         if not dialog:
             builder_file = self.find_file("pandora-prefs.ui")
-            dialog = PandoraConfigureDialog(builder_file).get_dialog()
+            dialog_wrapper = PandoraConfigureDialog(builder_file, callback)
+            dialog = dialog_wrapper.get_dialog()
         dialog.present()
         return dialog
+    
     
     def playing_entry_changed(self, sp, entry):
         self.source.playing_entry_changed(entry)
