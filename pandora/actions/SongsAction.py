@@ -12,6 +12,7 @@ class SongsAction(object):
         
     
     def connect(self):
+        self.songs_list.connect('entry-activated', self.song_activated_cb)
         self.songs_list.connect('star', self.do_star_clicked)
         
         action = self.action_group.get_action('SongInfo')
@@ -26,7 +27,10 @@ class SongsAction(object):
         action.connect('activate', self.bookmark_song)
         action = self.action_group.get_action('BookmarkArtist')
         action.connect('activate', self.bookmark_artist)
-        
+    
+    def song_activated_cb(self, entry_view, song_entry):
+        print "Song activated"
+           
     def do_star_clicked(self, entryview, model, iter):
         entry = model.iter_to_entry(iter)
         self.love_song(entry) 

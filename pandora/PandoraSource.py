@@ -160,30 +160,7 @@ class PandoraSource(rb.StreamingSource):
         
         self.add(self.vbox_main)
     
-    #TODO: Refactor to own class
-    def create_error_area(self):
-        builder_file = self.__plugin.find_file("error_area.ui")
-        builder = gtk.Builder()
-        builder.add_from_file(builder_file)
-        error_frame = builder.get_object('error_frame')
-        error_area = builder.get_object('error_event_box')
-        self.primary_error = builder.get_object('primary_message')
-        self.secondary_error = builder.get_object('secondary_message')
-        # Hack to get the tooltip background color
-        window = gtk.Window(gtk.WINDOW_POPUP)
-        window.set_name("gtk-tooltip")
-        window.ensure_style()
-        style = window.get_style()
-        error_area.set_style(style)
-        error_frame.set_style(style)
-        
-        account_button = builder.get_object("account_settings")
-        account_button.connect("clicked", self.on_account_settings_clicked)
-        
-        return error_frame
     
-
-        
         
     def connect_all(self):
         self.stations_list.connect('show_popup', self.do_stations_show_popup)
@@ -263,17 +240,19 @@ class PandoraSource(rb.StreamingSource):
             
             self.request_outstanding = False
             self.request_description = None 
-            self.notify_status_changed()   
+            self.waiting_for_playlist = False
+            self.connected = False
+            self.notify_status_changed()
+               
             if isinstance(e, PandoraAuthTokenInvalid) and not self.retrying:
                 self.retrying = True
-                self.connected = False
                 print "Automatic reconnect after invalid auth token"                
                 self.pandora_connect("Reconnecting...", retry_cb)
             elif isinstance(e, PandoraNetError):
                 error_message = "Unable to connect. Check your Internet connection."
                 detail = e.message
                 self.__activated = False
-                self.error_area.show(error_message)
+                self.error_area.show(error_message, detail)
                 print e.message
             elif isinstance(e, PandoraError):
                 error_message = "Invalid username and/or password.  Check your settings."
@@ -343,6 +322,8 @@ class PandoraSource(rb.StreamingSource):
         self.__db.set(station_entry, rhythmdb.PROP_LAST_PLAYED, now)
         
     def get_playlist(self, start = False):
+        print "Getting playlist"
+        
         if self.waiting_for_playlist: return
             
         def callback(songs):
