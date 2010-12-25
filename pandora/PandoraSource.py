@@ -115,7 +115,6 @@ class PandoraSource(rb.StreamingSource):
             if len(selected) == 1:
                 self.show_source_popup(popup)
     
-    #Override            
     def playing_entry_changed(self, entry):
         print "Playing Entry changed"
         if not self.__db or not entry:

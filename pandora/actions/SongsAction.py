@@ -30,6 +30,9 @@ class SongsAction(object):
     
     def song_activated_cb(self, entry_view, song_entry):
         print "Song activated"
+        url = song_entry.get_playback_uri()
+        
+        
            
     def do_star_clicked(self, entryview, model, iter):
         entry = model.iter_to_entry(iter)
