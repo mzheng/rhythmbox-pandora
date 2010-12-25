@@ -64,7 +64,7 @@ class PandoraSource(rb.StreamingSource):
         progress = 1
         text = ""
         if self.connected:
-            self.hide_error_area()
+            self.error_area.hide()
             num_stations = self.stations_model.get_num_entries()
             if num_stations > 1:
                 text =  str(num_stations) + " stations"
@@ -151,12 +151,12 @@ class PandoraSource(rb.StreamingSource):
         paned.pack2(frame2, True, False)
         self.vbox_main.pack_start(paned)
  
-        error_frame = self.create_error_area()
-        self.error_area = error_frame
+        self.error_area = widgets.ErrorView(self.__plugin, self.do_impl_activate)
+        error_frame = self.error_area.get_error_frame()
         self.vbox_main.pack_end(error_frame, False, False)
  
         self.vbox_main.show_all()
-        error_frame.hide()
+        self.error_area.hide()
         
         self.add(self.vbox_main)
     
@@ -182,8 +182,7 @@ class PandoraSource(rb.StreamingSource):
         
         return error_frame
     
-    def on_account_settings_clicked(self, *args):
-        self.__plugin.create_configure_dialog(callback=self.do_impl_activate)
+
         
         
     def connect_all(self):
@@ -219,7 +218,7 @@ class PandoraSource(rb.StreamingSource):
         self.action_group.add_action(action)
          
         manager.insert_action_group(self.action_group, 0)
-        popup_file = self.__plugin.find_file("pandora-ui.xml")
+        popup_file = self.__plugin.find_file("pandora/pandora-ui.xml")
         self.ui_id = manager.add_ui_from_file(popup_file)
         manager.ensure_update()
         
@@ -230,7 +229,7 @@ class PandoraSource(rb.StreamingSource):
                 self.username, self.password = self.get_pandora_account_info()
             except AccountNotSetException, (instance):
                 #Ask User to configure account
-                self.show_error_area(instance.parameter)
+                self.error_area.show(instance.parameter)
                 #Retry after user put in account
                 return
             
@@ -274,12 +273,12 @@ class PandoraSource(rb.StreamingSource):
                 error_message = "Unable to connect. Check your Internet connection."
                 detail = e.message
                 self.__activated = False
-                self.show_error_area(error_message, detail)
+                self.error_area.show(error_message)
                 print e.message
             elif isinstance(e, PandoraError):
                 error_message = "Invalid username and/or password.  Check your settings."
                 self.__activated = False
-                self.show_error_area(error_message)
+                self.error_area.show(error_message)
                 print e.message
             else:
                 print e.traceback
@@ -302,17 +301,6 @@ class PandoraSource(rb.StreamingSource):
             raise AccountNotSetException(error_message)
         return tuple(secret.split('\n'))
     
-    def show_error_area(self, primary_message, secondary_message=None):
-        self.primary_error.set_text(primary_message)
-        if secondary_message is None:
-            self.secondary_error.hide()
-        else:
-            self.secondary_error.set_text(secondary_message)
-            self.secondary_error.show()
-        self.error_area.show()
-    
-    def hide_error_area(self):
-        self.error_area.hide()
         
         
     def pandora_connect(self, message="Logging in...", callback=None):
