@@ -1,14 +1,18 @@
 ==================
-rhythmbox-pandora
+Pandora Plugin for Rhythmbox
 ==================
 
 This is a Rhythmbox plugin based on Pithos_ that plays Pandora_ stations.
 
-You can install this by running 'sh setup.sh'.
+Screenshot
+==========
 
-See Screenshot_
+.. image:: http://dl.dropbox.com/u/171635/rhythmbox-pandora/playing_cropped.png
+
+Install
+=======
+	sh setup.sh
 
 .. _Pithos: http://kevinmehall.net/p/pithos/
 .. _Pandora: http://www.pandora.com/
-.. _Screenshot: http://github.com/mzheng/rhythmbox-pandora/wiki/
 
