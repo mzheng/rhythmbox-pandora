@@ -2,10 +2,10 @@
 rhythmbox-pandora
 ==================
 
-This is a Rhythmbox plugin that plays Pandora stations.
-It is based on Pithos `http://kevinmehall.net/p/pithos/`.
+This is a Rhythmbox plugin based on Pithos_ that plays Pandora_ stations.
 
-You can install this by running 'sh setup.py'
+You can install this by running 'sh setup.py'.
 
-
+.. _Pithos: http://kevinmehall.net/p/pithos/
+.. _Pandora: http://www.pandora.com/
 
