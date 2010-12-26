@@ -14,6 +14,7 @@ Install
 =======
 
 Install it with::
+
 	sh setup.sh
 
 Screenshot
