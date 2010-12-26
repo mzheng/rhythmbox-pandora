@@ -12,6 +12,7 @@ Features
 
 Install
 =======
+
 	sh setup.sh
 
 Screenshot
