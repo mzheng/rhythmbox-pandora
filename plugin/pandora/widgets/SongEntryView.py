@@ -21,7 +21,6 @@ import rb, rhythmdb
 import gtk
 
 from cellpixbufbutton import *
-from pixbufbutton import *
 
 class SongEntryView(rb.EntryView):
     __gsignals__ = {
