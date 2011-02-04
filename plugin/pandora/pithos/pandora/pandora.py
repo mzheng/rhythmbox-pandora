@@ -18,8 +18,8 @@ import time
 import urllib2, urllib
 import xml.etree.ElementTree as etree
 
-from pithos.pandora.xmlrpc import *
-from pithos.pandora.blowfish import Blowfish
+from xmlrpc import *
+from blowfish import Blowfish
 
 PROTOCOL_VERSION = "29"
 RPC_URL = "http://www.pandora.com/radio/xmlrpc/v"+PROTOCOL_VERSION+"?"
@@ -42,7 +42,7 @@ class PandoraAuthTokenInvalid(PandoraError): pass
 class PandoraNetError(PandoraError): pass
 class PandoraTimeout(PandoraNetError): pass
 
-from pithos.pandora import pandora_keys
+import pandora_keys
 
 blowfish_encode = Blowfish(pandora_keys.out_key_p, pandora_keys.out_key_s)
 

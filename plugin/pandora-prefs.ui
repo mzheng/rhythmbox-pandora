@@ -41,7 +41,7 @@
                   <object class="GtkLabel" id="label2">
                     <property name="visible">True</property>
                     <property name="xpad">6</property>
-                    <property name="label" translatable="yes">Username:</property>
+                    <property name="label" translatable="yes">Email:</property>
                     <property name="use_underline">True</property>
                     <property name="mnemonic_widget">username</property>
                     <property name="width_chars">2</property>

@@ -18,7 +18,6 @@
 """
 
 import webbrowser
-from pithos.pandora import *;
 
 class SongsAction(object):
     def __init__(self, pandora_source):

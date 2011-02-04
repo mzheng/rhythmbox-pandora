@@ -37,7 +37,10 @@ class PandoraPlugin(rb.Plugin):
     def activate(self, shell):
         print "activating pandora plugin"
         db = shell.props.db
-        entry_type = db.entry_register_type("PandoraEntryType")
+	try:
+		entry_type = db.entry_register_type("PandoraEntryType")
+	except AttributeError:
+		entry_type = rhythmdb.EntryType()
         
         width, height = gtk.icon_size_lookup(gtk.ICON_SIZE_LARGE_TOOLBAR)
         icon = gtk.gdk.pixbuf_new_from_file_at_size(self.find_file("pandora.png"), width, height)
