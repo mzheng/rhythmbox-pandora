@@ -21,7 +21,7 @@ import xml.etree.ElementTree as etree
 from xmlrpc import *
 from blowfish import Blowfish
 
-PROTOCOL_VERSION = "29"
+PROTOCOL_VERSION = "30"
 RPC_URL = "http://www.pandora.com/radio/xmlrpc/v"+PROTOCOL_VERSION+"?"
 USER_AGENT = "Pithos/0.2"
 HTTP_TIMEOUT = 30
@@ -179,13 +179,13 @@ class Pandora(object):
     def add_station_by_music_id(self, musicid):
          return self.create_station('mi', musicid)
          
-    def add_feedback(self, stationId, musicId, rating, userSeed='', testStrategy='', songType=''):
+    def add_feedback(self, stationId, musicId, rating, userSeed='', songType=''):
         logging.info("pandora: addFeedback")
         if rating == RATE_NONE:
             logging.error("Can't set rating to none")
             return
         rating_bool = True if rating == RATE_LOVE else False
-        self.xmlrpc_call('station.addFeedback', [stationId, musicId, userSeed, testStrategy, rating_bool, False, songType])
+        self.xmlrpc_call('station.addFeedback', [stationId, musicId, userSeed, '0', rating_bool, False, songType])
         
     def get_station_by_id(self, id):
         for i in self.stations:
