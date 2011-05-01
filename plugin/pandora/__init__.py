@@ -44,14 +44,27 @@ class PandoraPlugin(rb.Plugin):
         
         width, height = gtk.icon_size_lookup(gtk.ICON_SIZE_LARGE_TOOLBAR)
         icon = gtk.gdk.pixbuf_new_from_file_at_size(self.find_file("pandora.png"), width, height)
-        self.source = gobject.new (PandoraSource, 
-                                   shell=shell,
-                                   plugin=self, 
-                                   name=_("Pandora"),
-                                   icon=icon, 
-                                   entry_type=entry_type)
+	# rhythmbox api break up (0.13.2 - 0.13.3)
+	if hasattr(rb, 'rb_source_group_get_by_name'):
+        	self.source = gobject.new (PandoraSource, 
+	                                   shell=shell,
+        	                           plugin=self, 
+        	                           name=_("Pandora"),
+        	                           icon=icon, 
+        	                           entry_type=entry_type)
 
-        shell.append_source(self.source, None)
+        	shell.append_source(self.source, None)
+	else:
+		group = rb.rb_display_page_group_get_by_id ("library")
+		self.source = gobject.new (PandoraSource, 
+	                                   shell=shell,
+        	                           plugin=self, 
+        	                           name=_("Pandora"),
+        	                           pixbuf=icon, 
+        	                           entry_type=entry_type)
+
+        	shell.append_display_page(self.source, group)
+
         shell.register_entry_type_for_source(self.source, entry_type)
         
         # hack, should be done within gobject constructor

@@ -33,6 +33,7 @@ from pithos.gobject_worker import GObjectWorker
 import widgets
 import models
 import actions
+import notification_icon
 
 
 class PandoraSource(rb.StreamingSource):
@@ -71,6 +72,11 @@ class PandoraSource(rb.StreamingSource):
         self.request_outstanding = False
         
         self.songs_action = actions.SongsAction(self)
+
+	#icon = notification_icon.NotificationIcon(self.__plugin)
+	#print "Icon should show up..."
+	#print icon
+
         self.stations_action = actions.StationsAction(self, self.__plugin)
         self.connect_all()
         
@@ -80,9 +86,8 @@ class PandoraSource(rb.StreamingSource):
         self.retrying = False
         self.waiting_for_playlist = False
         
-        
-    
-    def do_impl_get_status(self):
+     # rhyhtmbox api break up (0.13.2 - 0.13.3)   
+    def do_get_status(self):
         progress_text = None
         progress = 1
         text = ""
@@ -104,6 +109,9 @@ class PandoraSource(rb.StreamingSource):
             progress_text = self.request_description
             progress = -1
         return (text, progress_text, progress)
+
+    def do_impl_get_status(self):
+	return self.do_get_status()
         
     def do_set_property(self, property, value):
         if property.name == 'plugin':
@@ -122,9 +130,20 @@ class PandoraSource(rb.StreamingSource):
     
     def do_impl_try_playlist(self):
         return False
-    
+
+    # rhythmbox api break up (0.13.2 - 0.13.3)    
+    def show_popup(self, popup):
+	if hasattr(self, 'show_source_popup'):
+		self.show_source_popup(popup)
+	else:
+		self.show_page_popup(popup)
+    # rhythmbox api break up (0.13.2 - 0.13.3)    
+    def do_show_popup(self):
+        self.show_popup("/PandoraSourceMainPopup")
+	return True
+
     def do_impl_show_popup(self):
-        self.show_source_popup("/PandoraSourceMainPopup")
+	return self.do_show_popup()
         
     def do_songs_show_popup(self, view, over_entry):
         self.show_single_popup(view, over_entry, "/PandoraSongViewPopup")
@@ -136,7 +155,7 @@ class PandoraSource(rb.StreamingSource):
         if (over_entry):
             selected = view.get_selected_entries()
             if len(selected) == 1:
-                self.show_source_popup(popup)
+                self.show_popup(popup)
     
     def playing_entry_changed(self, entry):
         print "Playing Entry changed"
@@ -220,8 +239,9 @@ class PandoraSource(rb.StreamingSource):
         popup_file = self.__plugin.find_file("pandora/pandora-ui.xml")
         self.ui_id = manager.add_ui_from_file(popup_file)
         manager.ensure_update()
-        
-    def do_impl_activate(self):
+
+     # rhyhtmbox api break up (0.13.2 - 0.13.3)   
+    def do_selected(self):
         print "Activating source"
         if not self.__activated:
             try:
@@ -235,6 +255,9 @@ class PandoraSource(rb.StreamingSource):
             self.pandora_connect()
             
             self.__activated = True
+   
+    def do_impl_activate(self):
+	self.do_selected()
             
 
         
