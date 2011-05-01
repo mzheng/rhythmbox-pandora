@@ -33,7 +33,7 @@ from pithos.gobject_worker import GObjectWorker
 import widgets
 import models
 import actions
-import notification_icon
+#import notification_icon
 
 
 class PandoraSource(rb.StreamingSource):
