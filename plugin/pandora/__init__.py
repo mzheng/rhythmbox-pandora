@@ -45,7 +45,7 @@ class PandoraPlugin(rb.Plugin):
         width, height = gtk.icon_size_lookup(gtk.ICON_SIZE_LARGE_TOOLBAR)
         icon = gtk.gdk.pixbuf_new_from_file_at_size(self.find_file("pandora.png"), width, height)
 	# rhythmbox api break up (0.13.2 - 0.13.3)
-	if hasattr(rb, 'rb_source_group_get_by_name'):
+	if hasattr(shell, 'append_source'):
         	self.source = gobject.new (PandoraSource, 
 	                                   shell=shell,
         	                           plugin=self, 
