@@ -57,7 +57,7 @@ class SongsModel(rhythmdb.QueryModel):
         return self.__songs_dict[url]
     
     def is_last_entry(self, entry):
-        return self.__last_entry == entry
+        return self.__last_entry == entry or self.__last_entry.get_playback_uri() == entry.get_playback_uri()
     
     def get_num_entries(self):
         return self.iter_n_children(None)
