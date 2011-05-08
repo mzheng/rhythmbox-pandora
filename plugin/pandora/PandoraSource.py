@@ -300,7 +300,7 @@ class PandoraSource(rb.StreamingSource):
                 self.error_area.show(error_message, detail)
                 print e.message
             elif isinstance(e, PandoraError):
-                error_message = "Invalid username and/or password.  Check your settings."
+                error_message = e.message
                 self.__activated = False
                 self.error_area.show(error_message)
                 print e.message
