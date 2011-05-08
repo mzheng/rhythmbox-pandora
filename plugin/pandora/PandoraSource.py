@@ -33,7 +33,7 @@ from pithos.gobject_worker import GObjectWorker
 import widgets
 import models
 import actions
-#import notification_icon
+import notification_icon
 
 
 class PandoraSource(rb.StreamingSource):
@@ -73,9 +73,9 @@ class PandoraSource(rb.StreamingSource):
         
         self.songs_action = actions.SongsAction(self)
 
-	#icon = notification_icon.NotificationIcon(self.__plugin)
-	#print "Icon should show up..."
-	#print icon
+	icon = notification_icon.NotificationIcon(self.__plugin, self.songs_action)
+	print "Icon should show up..."
+	print icon
 
         self.stations_action = actions.StationsAction(self, self.__plugin)
         self.connect_all()
@@ -406,7 +406,10 @@ class PandoraSource(rb.StreamingSource):
             print "Could not query duration"
             print e
             pass 
-        
+     
+    def get_current_song_entry(self):
+	return self.__player.get_playing_entry()
+   
     def next_song(self):
         self.__player.do_next()
     

@@ -18,6 +18,7 @@
 """
 
 import webbrowser
+import pandora
 
 class SongsAction(object):
     def __init__(self, pandora_source):
@@ -56,14 +57,6 @@ class SongsAction(object):
         entry = model.iter_to_entry(iter)
         self.love_song(entry) 
         
-    def love_song(self, entry):
-        url = entry.get_playback_uri()
-        song = self.songs_model.get_song(url) 
-        def callback(l):
-            print "Loved song: %s " %(song.title)
-            #TODO: Add feedback
-        self.worker_run(song.rate, (RATE_LOVE,), callback, "Loving song...")
-        
     def view_song_info(self, *args):
         song = self.selected_song()
         webbrowser.open(song.songDetailURL)
@@ -74,34 +67,66 @@ class SongsAction(object):
         url = entry.get_playback_uri()
         song = self.songs_model.get_song(url)
         return song
-    
+
+     # Love song
+
+    def love_song(self, entry):
+        url = entry.get_playback_uri()
+        song = self.songs_model.get_song(url) 
+        def callback(l):
+            print "Loved song: %s " %(song.title)
+        self.worker_run(song.rate, (pandora.RATE_LOVE,), callback, "Loving song...")
+
+    def love_current_song(self):
+        entry = self.source.get_current_song_entry()
+        if entry:
+                self.love_song(entry)
+
     def love_selected_song(self, *args):
         selected = self.songs_list.get_selected_entries()
         for entry in selected:
             if not self.songs_list.has_star(entry):
                 self.songs_list.add_star(entry)
                 self.love_song(entry)
-    
-    def ban_selected_song(self, *args):
-        song = self.delete_selected_song()
+
+    # Ban song
+    def ban_song(self, song):
+        self.delete_song(song)
         def callback(l):
             print "Banned song: %s " %(song.title)
-        self.worker_run(song.rate, (RATE_BAN,), callback, "Banning song...")
+        self.worker_run(song.rate, (pandora.RATE_BAN,), callback, "Banning song...")        
+        
+    def ban_current_song(self):
+        song = self.source.current_song;
+        if song:
+                self.ban_song(song)        
+
+    def ban_selected_song(self, *args):
+        song = self.selected_song()
+        self.ban_song(song)
     
-    def tired_selected_song(self, *args):
-        song = self.delete_selected_song()
+    # Tire song
+    def tire_song(self, song):
+        self.delete_song(song)
         def callback(l):
             print "Tired of song: %s " %(song.title)
         self.worker_run(song.set_tired, (), callback, "Putting song on shelf...")
+    
+    def tire_current_song(self):
+        song = self.source.current_song;
+        if song:
+                self.tire_song(song)             
         
-    def delete_selected_song(self):
+    def tired_selected_song(self, *args):
         song = self.selected_song()
+        tire_song(song)
+        
+    def delete_song(self, song):
         url = song.audioUrl
         if self.source.is_current_song(song):
             self.source.next_song()
         # Remove from playlist
         self.songs_model.delete_song(url) 
-        return song
     
     def bookmark_song(self, *args):
         song = self.selected_song()
