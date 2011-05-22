@@ -80,6 +80,7 @@ class SongsAction(object):
     def love_current_song(self):
         entry = self.source.get_current_song_entry()
         if entry:
+		self.songs_list.add_star(entry)
                 self.love_song(entry)
 
     def love_selected_song(self, *args):

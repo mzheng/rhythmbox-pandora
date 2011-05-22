@@ -71,19 +71,26 @@ class PandoraPlugin(rb.Plugin):
         self.source.init()
         
         self.pec_id = shell.get_player().connect_after('playing-song-changed', self.playing_entry_changed)
+        self.psc_id = shell.get_player().connect_after('playing-source-changed', self.playing_source_changed)
         
 
     def deactivate(self, shell):
-        #TODO: CLEANUP
         print "deactivating pandora plugin"
         shell.get_player().disconnect (self.pec_id)
+        shell.get_player().disconnect (self.psc_id)
+	self.source.destroy_notification_icon()
         self.source.delete_thyself()
         self.source = None
         
     def create_configure_dialog(self, dialog=None, callback=None):
+	def dialog_closed_callback(icon_enabled):
+	    self.source.refresh_notification_icon(icon_enabled)
+	    if callback:
+		callback()
+
         if not dialog:
             builder_file = self.find_file("pandora-prefs.ui")
-            dialog_wrapper = PandoraConfigureDialog(builder_file, callback)
+            dialog_wrapper = PandoraConfigureDialog(builder_file, dialog_closed_callback)
             dialog = dialog_wrapper.get_dialog()
         dialog.present()
         return dialog
@@ -91,6 +98,9 @@ class PandoraPlugin(rb.Plugin):
     
     def playing_entry_changed(self, sp, entry):
         self.source.playing_entry_changed(entry)
+
+    def playing_source_changed(self, player, source):
+	self.source.playing_source_changed(source)
         
 
             

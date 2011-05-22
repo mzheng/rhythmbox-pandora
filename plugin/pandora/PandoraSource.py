@@ -26,6 +26,7 @@ import gobject, gtk
 import gst
 import gnomekeyring as keyring
 from time import time
+import gconf
 
 from pithos.pandora import *;
 from pithos.gobject_worker import GObjectWorker
@@ -35,6 +36,11 @@ import models
 import actions
 import notification_icon
 
+GCONF_DIR = '/apps/rhythmbox/plugins/pandora'
+
+GCONF_KEYS = {
+	'icon': GCONF_DIR + '/icon'
+}
 
 class PandoraSource(rb.StreamingSource):
     __gproperties__ = {
@@ -53,6 +59,8 @@ class PandoraSource(rb.StreamingSource):
         self.__db = shell.get_property('db')
         self.__player = shell.get_player()
         self.__entry_type = self.get_property('entry-type')
+
+	self.gconf = gconf.client_get_default()
             
             
         self.vbox_main = None
@@ -72,10 +80,9 @@ class PandoraSource(rb.StreamingSource):
         self.request_outstanding = False
         
         self.songs_action = actions.SongsAction(self)
-
-	icon = notification_icon.NotificationIcon(self.__plugin, self.songs_action)
-	print "Icon should show up..."
-	print icon
+	
+	self.notification_icon = None
+	self.refresh_notification_icon()
 
         self.stations_action = actions.StationsAction(self, self.__plugin)
         self.connect_all()
@@ -85,7 +92,25 @@ class PandoraSource(rb.StreamingSource):
         
         self.retrying = False
         self.waiting_for_playlist = False
-        
+    
+    def refresh_notification_icon(self, icon_enabled = None):
+	if icon_enabled:
+		enabled = icon_enabled
+	else:
+		enabled = self.gconf.get_bool(GCONF_KEYS['icon'])
+	if enabled and not self.notification_icon:
+		self.notification_icon = notification_icon.NotificationIcon(self.__plugin, self.songs_action)
+		print "Added icon"
+		if self.__player.get_playing_source() != self:
+			self.notification_icon.hide()
+	else:
+		self.destroy_notification_icon()
+		self.notification_icon = None
+	 
+    def destroy_notification_icon(self):
+	if self.notification_icon:
+		self.notification_icon.destroy()
+   
      # rhyhtmbox api break up (0.13.2 - 0.13.3)   
     def do_get_status(self):
         progress_text = None
@@ -156,7 +181,16 @@ class PandoraSource(rb.StreamingSource):
             selected = view.get_selected_entries()
             if len(selected) == 1:
                 self.show_popup(popup)
-    
+
+    def playing_source_changed(self, source):
+        print "Playing source changed"
+	if not self.notification_icon:
+	    return
+        if self != source:
+	    self.notification_icon.hide()
+        else:
+	    self.notification_icon.show()
+		
     def playing_entry_changed(self, entry):
         print "Playing Entry changed"
         if not self.__db or not entry:

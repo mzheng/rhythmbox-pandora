@@ -7,7 +7,6 @@ class NotificationIcon:
 	self.tray_icon = TrayIcon(self.plugin.find_file(icon_file))
 	self.build_context_menu();
 	#TODO: Disable actions when they're N/A
-	#TODO: Hide when not applicable
     def build_context_menu(self):
 	menu = self.tray_icon.popup
         def button(text, action, icon):
@@ -32,7 +31,17 @@ class NotificationIcon:
         
 	self.tray_icon.set_visible(True)
 	
+    def hide(self):
+	self.tray_icon.set_visible(False)
+    
+    def show(self):
+	self.tray_icon.set_visible(True) 
 	#TODO: Clean up
+
+    def destroy(self):
+	self.tray_icon.popup.popdown()
+        self.tray_icon.set_visible(False)
+        self.tray_icon.destroy(); del self.tray_icon
 	
 class TrayIcon(gtk.StatusIcon):
     def __init__(self, iconfile):

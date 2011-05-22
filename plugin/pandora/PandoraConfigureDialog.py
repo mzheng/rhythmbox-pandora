@@ -17,12 +17,21 @@
 """
 
 import gobject, gtk
+import gconf
 import gnomekeyring as keyring
+
+GCONF_DIR = '/apps/rhythmbox/plugins/pandora'
+
+GCONF_KEYS = {
+	'icon': GCONF_DIR + '/icon'
+}
 
 class PandoraConfigureDialog(object):
     def __init__(self, builder_file, callback):
         self.__builder = gtk.Builder()
         self.__builder.add_from_file(builder_file)
+
+	self.gconf = gconf.client_get_default()
         
         self.callback = callback
         self.dialog = self.__builder.get_object('preferences_dialog')
@@ -33,6 +42,9 @@ class PandoraConfigureDialog(object):
             'item': None
         }
         
+	enable_icon = self.__builder.get_object("enable_icon")
+	enable_icon.set_active(self.gconf.get_bool(GCONF_KEYS['icon']))
+
         self.find_keyring_items()
             
     def get_dialog(self):
@@ -47,11 +59,18 @@ class PandoraConfigureDialog(object):
         if self.__keyring_data['item']:
             self.__keyring_data['item'].set_secret('\n'.join((username, password)))
         keyring.item_set_info_sync(None, self.__keyring_data['id'], self.__keyring_data['item'])
+
+	enable_icon = self.__builder.get_object("enable_icon")
+	enabled =enable_icon.get_active()
+	self.gconf.set_bool(GCONF_KEYS['icon'], enabled)
+	print "Setting to "
+	print enabled
+
         dialog.hide()
         
         if self.callback:
-            self.callback()
-            self.callback = None
+	    #gconf transaction is asynch
+            self.callback(enabled)
     
     def fill_account_details(self):
         try:
