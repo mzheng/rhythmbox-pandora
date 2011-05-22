@@ -122,7 +122,7 @@
             </child>
             <child>
               <object class="GtkCheckButton" id="enable_icon">
-                <property name="label" translatable="yes">Enable System Tray Icon</property>
+                <property name="label" translatable="yes">Show notification area icon</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>

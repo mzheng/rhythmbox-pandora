@@ -9,6 +9,7 @@ Features
 - Play / Pause / Next Song
 - Creating/Deleting stations
 - Thumbs Up / Thumbs Down / Tired of this song
+- Notification Area Icon for Quick Song Rating
 
 Install
 =======
