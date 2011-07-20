@@ -43,7 +43,7 @@ class SongEntryView(rb.EntryView):
         self.append_column(rb.ENTRY_VIEW_COL_TITLE, True)
         self.append_column(rb.ENTRY_VIEW_COL_ARTIST, True)
         self.append_column(rb.ENTRY_VIEW_COL_ALBUM, True)
-        self.append_column(rb.ENTRY_VIEW_COL_DURATION, True)
+        #self.append_column(rb.ENTRY_VIEW_COL_DURATION, True)
         
         cell_render = CellPixbufButton()
         #cell_render = PixbufButton()
